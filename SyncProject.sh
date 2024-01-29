@@ -1,0 +1,1 @@
+rsync -r ./project snicosanti@160.80.85.52:/home/snicosanti/
