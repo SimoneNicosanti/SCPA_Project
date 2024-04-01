@@ -26,8 +26,8 @@ find_package(MPI REQUIRED)
 include_directories(${MPI_INCLUDE_PATH})
 set(SOURCE_FILES 
     code/MPI/main.c
-    code/MPI/mpi.c
-    code/MPI/Mpi.h
+    code/MPI/MpiProduct.c
+    code/MPI/MpiProduct.h
 )
 add_executable(mpiExecutable.out 
     ${SOURCE_FILES}

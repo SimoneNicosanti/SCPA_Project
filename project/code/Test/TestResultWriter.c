@@ -30,6 +30,7 @@ void writeTestResult(char *fileName, TestStruct *testResult) {
     fclose(fileDesc) ;
 }
 
+
 void prepareResultFile(char *fileName) {
     FILE *fileDesc = fopen(fileName, "w+") ;
     if (fileDesc == NULL) {

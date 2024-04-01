@@ -155,6 +155,30 @@ mpiExecutable.out/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/mpiExecutable.out.dir/build.make CMakeFiles/mpiExecutable.out.dir/build
 .PHONY : mpiExecutable.out/fast
 
+code/MPI/MpiProduct.o: code/MPI/MpiProduct.c.o
+.PHONY : code/MPI/MpiProduct.o
+
+# target to build an object file
+code/MPI/MpiProduct.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/mpiExecutable.out.dir/build.make CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.o
+.PHONY : code/MPI/MpiProduct.c.o
+
+code/MPI/MpiProduct.i: code/MPI/MpiProduct.c.i
+.PHONY : code/MPI/MpiProduct.i
+
+# target to preprocess a source file
+code/MPI/MpiProduct.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/mpiExecutable.out.dir/build.make CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.i
+.PHONY : code/MPI/MpiProduct.c.i
+
+code/MPI/MpiProduct.s: code/MPI/MpiProduct.c.s
+.PHONY : code/MPI/MpiProduct.s
+
+# target to generate assembly for a file
+code/MPI/MpiProduct.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/mpiExecutable.out.dir/build.make CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.s
+.PHONY : code/MPI/MpiProduct.c.s
+
 code/MPI/main.o: code/MPI/main.c.o
 .PHONY : code/MPI/main.o
 
@@ -178,30 +202,6 @@ code/MPI/main.s: code/MPI/main.c.s
 code/MPI/main.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/mpiExecutable.out.dir/build.make CMakeFiles/mpiExecutable.out.dir/code/MPI/main.c.s
 .PHONY : code/MPI/main.c.s
-
-code/MPI/mpi.o: code/MPI/mpi.c.o
-.PHONY : code/MPI/mpi.o
-
-# target to build an object file
-code/MPI/mpi.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/mpiExecutable.out.dir/build.make CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.o
-.PHONY : code/MPI/mpi.c.o
-
-code/MPI/mpi.i: code/MPI/mpi.c.i
-.PHONY : code/MPI/mpi.i
-
-# target to preprocess a source file
-code/MPI/mpi.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/mpiExecutable.out.dir/build.make CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.i
-.PHONY : code/MPI/mpi.c.i
-
-code/MPI/mpi.s: code/MPI/mpi.c.s
-.PHONY : code/MPI/mpi.s
-
-# target to generate assembly for a file
-code/MPI/mpi.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/mpiExecutable.out.dir/build.make CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.s
-.PHONY : code/MPI/mpi.c.s
 
 code/Matrix/Matrix.o: code/Matrix/Matrix.c.o
 .PHONY : code/Matrix/Matrix.o
@@ -286,12 +286,12 @@ help:
 	@echo "... Matrix"
 	@echo "... Test"
 	@echo "... mpiExecutable.out"
+	@echo "... code/MPI/MpiProduct.o"
+	@echo "... code/MPI/MpiProduct.i"
+	@echo "... code/MPI/MpiProduct.s"
 	@echo "... code/MPI/main.o"
 	@echo "... code/MPI/main.i"
 	@echo "... code/MPI/main.s"
-	@echo "... code/MPI/mpi.o"
-	@echo "... code/MPI/mpi.i"
-	@echo "... code/MPI/mpi.s"
 	@echo "... code/Matrix/Matrix.o"
 	@echo "... code/Matrix/Matrix.i"
 	@echo "... code/Matrix/Matrix.s"

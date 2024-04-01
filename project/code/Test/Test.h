@@ -13,11 +13,3 @@ typedef struct TestStruct {
 
     double error ;
 } TestStruct ;
-
-
-double compareMatrix(Matrix *parResult, Matrix *nonParResult) ;
-
-void nonParallelMultiplicate(double **matrixA, double **matrixB, double **matrixC, int m, int n, int k) ;
-
-void buildTestResult(TestStruct *testResult, int parallelUnitNum, double testValue, int m, int n, int k, double error) ;
-void writeTestResult(char *fileName, TestStruct *testResult) ;

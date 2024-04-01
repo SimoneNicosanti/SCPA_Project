@@ -83,30 +83,30 @@ CMakeFiles/mpiExecutable.out.dir/code/MPI/main.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/mpiExecutable.out.dir/code/MPI/main.c.s"
 	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/simone/Scrivania/University/SCPA/SCPA_Project/project/code/MPI/main.c -o CMakeFiles/mpiExecutable.out.dir/code/MPI/main.c.s
 
-CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.o: CMakeFiles/mpiExecutable.out.dir/flags.make
-CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.o: ../code/MPI/mpi.c
-CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.o: CMakeFiles/mpiExecutable.out.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/simone/Scrivania/University/SCPA/SCPA_Project/project/CMake/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building C object CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.o"
-	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.o -MF CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.o.d -o CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.o -c /home/simone/Scrivania/University/SCPA/SCPA_Project/project/code/MPI/mpi.c
+CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.o: CMakeFiles/mpiExecutable.out.dir/flags.make
+CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.o: ../code/MPI/MpiProduct.c
+CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.o: CMakeFiles/mpiExecutable.out.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/simone/Scrivania/University/SCPA/SCPA_Project/project/CMake/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building C object CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.o"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.o -MF CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.o.d -o CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.o -c /home/simone/Scrivania/University/SCPA/SCPA_Project/project/code/MPI/MpiProduct.c
 
-CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.i"
-	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/simone/Scrivania/University/SCPA/SCPA_Project/project/code/MPI/mpi.c > CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.i
+CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.i"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/simone/Scrivania/University/SCPA/SCPA_Project/project/code/MPI/MpiProduct.c > CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.i
 
-CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.s"
-	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/simone/Scrivania/University/SCPA/SCPA_Project/project/code/MPI/mpi.c -o CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.s
+CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.s"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/simone/Scrivania/University/SCPA/SCPA_Project/project/code/MPI/MpiProduct.c -o CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.s
 
 # Object files for target mpiExecutable.out
 mpiExecutable_out_OBJECTS = \
 "CMakeFiles/mpiExecutable.out.dir/code/MPI/main.c.o" \
-"CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.o"
+"CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.o"
 
 # External object files for target mpiExecutable.out
 mpiExecutable_out_EXTERNAL_OBJECTS =
 
 ../build/mpiExecutable.out: CMakeFiles/mpiExecutable.out.dir/code/MPI/main.c.o
-../build/mpiExecutable.out: CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.o
+../build/mpiExecutable.out: CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.o
 ../build/mpiExecutable.out: CMakeFiles/mpiExecutable.out.dir/build.make
 ../build/mpiExecutable.out: libMatrix.a
 ../build/mpiExecutable.out: libTest.a

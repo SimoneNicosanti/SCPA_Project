@@ -8,8 +8,8 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
+  "/home/simone/Scrivania/University/SCPA/SCPA_Project/project/code/MPI/MpiProduct.c" "CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.o" "gcc" "CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.o.d"
   "/home/simone/Scrivania/University/SCPA/SCPA_Project/project/code/MPI/main.c" "CMakeFiles/mpiExecutable.out.dir/code/MPI/main.c.o" "gcc" "CMakeFiles/mpiExecutable.out.dir/code/MPI/main.c.o.d"
-  "/home/simone/Scrivania/University/SCPA/SCPA_Project/project/code/MPI/mpi.c" "CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.o" "gcc" "CMakeFiles/mpiExecutable.out.dir/code/MPI/mpi.c.o.d"
   )
 
 # Targets to which this target links.
