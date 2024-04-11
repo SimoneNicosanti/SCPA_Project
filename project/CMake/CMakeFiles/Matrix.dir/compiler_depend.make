@@ -46,8 +46,21 @@ CMakeFiles/Matrix.dir/code/Matrix/Matrix.c.o: ../code/Matrix/Matrix.c \
   /usr/include/x86_64-linux-gnu/bits/struct_rwlock.h \
   /usr/include/alloca.h \
   /usr/include/x86_64-linux-gnu/bits/stdlib-float.h \
+  /usr/include/stdio.h \
+  /usr/lib/gcc/x86_64-linux-gnu/11/include/stdarg.h \
+  /usr/include/x86_64-linux-gnu/bits/types/__fpos_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/__mbstate_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/__fpos64_t.h \
+  /usr/include/x86_64-linux-gnu/bits/types/__FILE.h \
+  /usr/include/x86_64-linux-gnu/bits/types/FILE.h \
+  /usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h \
+  /usr/include/x86_64-linux-gnu/bits/stdio_lim.h \
   ../code/Matrix/Matrix.h
 
+
+/usr/include/x86_64-linux-gnu/bits/types/__fpos64_t.h:
+
+/usr/include/stdio.h:
 
 /usr/include/x86_64-linux-gnu/bits/struct_rwlock.h:
 
@@ -63,6 +76,8 @@ CMakeFiles/Matrix.dir/code/Matrix/Matrix.c.o: ../code/Matrix/Matrix.c \
 
 /usr/include/x86_64-linux-gnu/bits/types/struct_timespec.h:
 
+/usr/include/x86_64-linux-gnu/bits/types/__FILE.h:
+
 /usr/include/x86_64-linux-gnu/bits/types/struct_timeval.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/__sigset_t.h:
@@ -73,9 +88,13 @@ CMakeFiles/Matrix.dir/code/Matrix/Matrix.c.o: ../code/Matrix/Matrix.c \
 
 /usr/include/x86_64-linux-gnu/bits/byteswap.h:
 
+/usr/include/x86_64-linux-gnu/bits/types/__mbstate_t.h:
+
 /usr/include/x86_64-linux-gnu/bits/uintn-identity.h:
 
 /usr/include/x86_64-linux-gnu/gnu/stubs-64.h:
+
+/usr/include/x86_64-linux-gnu/bits/types/FILE.h:
 
 /usr/include/features.h:
 
@@ -83,15 +102,21 @@ CMakeFiles/Matrix.dir/code/Matrix/Matrix.c.o: ../code/Matrix/Matrix.c \
 
 /usr/include/x86_64-linux-gnu/bits/long-double.h:
 
+/usr/include/x86_64-linux-gnu/bits/types/__fpos_t.h:
+
 /usr/include/alloca.h:
 
 /usr/include/x86_64-linux-gnu/bits/time64.h:
+
+/usr/lib/gcc/x86_64-linux-gnu/11/include/stdarg.h:
 
 /usr/include/x86_64-linux-gnu/bits/timesize.h:
 
 /usr/include/features-time64.h:
 
 ../code/Matrix/Matrix.c:
+
+/usr/include/x86_64-linux-gnu/bits/stdio_lim.h:
 
 /usr/include/x86_64-linux-gnu/bits/types.h:
 
@@ -130,6 +155,8 @@ CMakeFiles/Matrix.dir/code/Matrix/Matrix.c.o: ../code/Matrix/Matrix.c \
 /usr/include/x86_64-linux-gnu/sys/types.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/time_t.h:
+
+/usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h:
 
 /usr/include/x86_64-linux-gnu/bits/typesizes.h:
 

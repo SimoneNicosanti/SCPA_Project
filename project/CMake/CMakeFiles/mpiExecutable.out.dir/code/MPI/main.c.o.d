@@ -62,4 +62,5 @@ CMakeFiles/mpiExecutable.out.dir/code/MPI/main.c.o: \
  /usr/include/x86_64-linux-gnu/bits/types/__locale_t.h \
  /usr/include/string.h /usr/include/strings.h \
  /home/simone/Scrivania/University/SCPA/SCPA_Project/project/code/MPI/MpiProduct.h \
- /home/simone/Scrivania/University/SCPA/SCPA_Project/project/code/MPI/../Matrix/Matrix.h
+ /home/simone/Scrivania/University/SCPA/SCPA_Project/project/code/MPI/../Matrix/Matrix.h \
+ /home/simone/Scrivania/University/SCPA/SCPA_Project/project/code/MPI/Utils.h

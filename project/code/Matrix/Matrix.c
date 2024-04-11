@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "Matrix.h"
 
 
@@ -11,117 +12,51 @@ double generateRandomNumber(int min, int max) {
 }
 
 /*
-    Allocs matrix per blocks and fills it with random generated numbers
+    Allocs a matrix with continuous data but giving back
+    an array pointing to the beginning of each row
 */
-Matrix *randomMatrixConstructor(int totalRows, int totalCols, int totalRowBlocks, int totalColBlocks) {
-    Matrix *matrix = matrixConstructor(totalRows, totalCols, totalRowBlocks, totalColBlocks) ;
+double **allocMatrix(int rowsNum, int colsNum) {
+    double *matrixData = calloc(rowsNum * colsNum, sizeof(double));
+    if (matrixData == NULL) {
+        return NULL ;
+    }
+
+    double **matrix = malloc(rowsNum * sizeof(double *));
     if (matrix == NULL) {
         return NULL ;
     }
 
-    for (int i = 0 ; i < totalRows * totalCols ; i++) {
-        matrix->data[i] = generateRandomNumber(RAND_LOWER_BOUND, RAND_UPPER_BOUND) ;
+    for (int i = 0 ; i < rowsNum ; i++)
+        matrix[i] = &(matrixData[i * colsNum]);
+    
+    return matrix;
+}
+
+
+/*
+    Allocs a random matrix
+*/
+double **allocRandomMatrix(int rowsNum, int colsNum) {
+    double **matrix = allocMatrix(rowsNum, colsNum) ;
+    if (matrix == NULL) {
+        return NULL ;
+    }
+
+    for (int i = 0 ; i < rowsNum ; i++) {
+        for (int j = 0 ; j < colsNum ; j++) {
+            matrix[i][j] = generateRandomNumber(RAND_LOWER_BOUND, RAND_UPPER_BOUND) ;
+        }
     }
 
     return matrix ;
 }
 
-void computeBlockSize(int totalRows, int totalCols, int totalRowBlocks, int totalColBlocks, int rowBlockIndex, int colBlockIndex, int *rowsInBlock, int *colsInBlock) {
-    int rowsDiv = totalRows / totalRowBlocks ;
-    int rowsMod = totalRows % totalRowBlocks ;
-
-    int colsDiv = totalCols / totalColBlocks ;
-    int colsMod = totalCols % totalColBlocks ;
-
-    if (rowBlockIndex < rowsMod) {
-        *rowsInBlock = rowsDiv + 1 ;
-    } else {
-        *rowsInBlock = rowsDiv ;
-    }
-
-    if (colBlockIndex < colsMod) {
-        *colsInBlock = colsDiv + 1 ;
-    } else {
-        *colsInBlock = colsDiv ;
-    }
-}
-
-/*
-    Allocs matrix per blocks.
-    In detail: we have a double pointer paradigm where :
-    * the first pointer points to a flat array of block pointers
-    * the second pointer points to a flat array of double (which is the block)
-    
-    Params:
-    * totalRows = num rows in matrix
-    * totalCols = num cols in matrix
-    * totalRowBlocks = num of row blocks
-    * totalColsBloks = num of col blocks
-    
-    Note:
-    If totalRowBlocks == 1 & totalColBlocks == 1, then we have the classical flat allocation for matrix
-*/
-Matrix *matrixConstructor(int totalRows, int totalCols, int totalRowBlocks, int totalColBlocks) {
-
-    int totalElems = totalRows * totalCols ;
-
-    Matrix *matrix = (Matrix *) malloc(sizeof(Matrix)) ;
-    if (matrix == NULL) {
-        return NULL ;
-    }
-
-    int rowsInBlock ;
-    int colsInBlock ;
-
-    matrix->data = (double *) malloc(sizeof(double) * totalElems) ;
-    matrix->rowsPerBlockArray = (int *) malloc(sizeof(int) * totalRowBlocks) ;
-    matrix->colsPerBlockArray = (int *) malloc(sizeof(int) * totalColBlocks) ;
-    if (matrix->data == NULL || matrix->rowsPerBlockArray == NULL || matrix->colsPerBlockArray == NULL) {
-        return NULL ;
-    }
-
-    for (int rowBlockIndex = 0 ; rowBlockIndex < totalRowBlocks ; rowBlockIndex++) {
-        for (int colBlockIndex = 0 ; colBlockIndex < totalColBlocks ; colBlockIndex++) {
-            computeBlockSize(totalRows, totalCols, totalRowBlocks, totalColBlocks, rowBlockIndex, colBlockIndex, &rowsInBlock, &colsInBlock) ;
-            matrix->rowsPerBlockArray[rowBlockIndex] = rowsInBlock ;
-            matrix->colsPerBlockArray[colBlockIndex] = colsInBlock ;
+// Prints a matrix
+void printMatrix(double **matrix, int rowsNum, int colsNum) {
+    for (int i = 0 ; i < rowsNum ; i++) {
+        for (int j = 0 ; j < colsNum ; j++) {
+            printf("%f ", matrix[i][j]) ;
         }
+        printf("\n") ;
     }
-
-    matrix->totalRows = totalRows ;
-    matrix->totalCols = totalCols ;
-    matrix->totalRowBlocks = totalRowBlocks ;
-    matrix->totalColBlocks = totalColBlocks ;
 }
-
-Matrix *copyMatrix(Matrix *matrix) {
-    Matrix *copy = matrixConstructor(matrix->totalRows, matrix->totalCols, matrix->totalRowBlocks, matrix->totalColBlocks) ;
-    if (copy == NULL) {
-        return NULL ;
-    }
-
-    for (int i = 0 ; i < matrix->totalRows * matrix->totalCols ; i++) {
-        copy->data[i] = matrix->data[i] ;
-    }
-
-    return copy ;
-}
-
-// double computeMatrixModule(Matrix *matrix) {
-//     double module = 0 ;
-//     for (int i = 0 ; i < matrix->rowNum ; i++) {
-//         for (int j = 0 ; j < matrix->colNum ; j++) {
-//             module = module + pow(matrix->matrix[i][j], 2) ;
-//         }
-//     }
-//     return sqrt(module) ;
-// }
-
-// //TODO Controlla che il calcolo errore sulle differenze dei moduli
-// double compareMatrix(Matrix *parResult, Matrix *nonParResult) {
-//     double parModule = computeMatrixModule(parResult) ;
-//     double nonParModule = computeMatrixModule(nonParResult) ;
-//     double diff = parModule - nonParModule ;
-    
-//     return (diff > 0) ? diff : -diff ;
-// }

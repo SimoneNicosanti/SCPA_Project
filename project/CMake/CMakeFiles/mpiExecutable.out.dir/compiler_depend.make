@@ -75,8 +75,11 @@ CMakeFiles/mpiExecutable.out.dir/code/MPI/main.c.o: ../code/MPI/main.c \
   /usr/include/string.h \
   /usr/include/strings.h \
   ../code/MPI/MpiProduct.h \
-  ../code/Matrix/Matrix.h
+  ../code/Matrix/Matrix.h \
+  ../code/MPI/Utils.h
 
+
+../code/MPI/Utils.h:
 
 ../code/MPI/MpiProduct.h:
 
