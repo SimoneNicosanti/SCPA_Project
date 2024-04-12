@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.0)
 project(SCPA_Project)
 
 # Set a custom build directory
-set(CUSTOM_BUILD_DIR ../build)
+set(CUSTOM_BUILD_DIR ${CMAKE_SOURCE_DIR}/out)
+# set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
 
 
 ## Target for Matrix utility

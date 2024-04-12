@@ -1,1 +1,0 @@
-/usr/bin/cc -rdynamic CMakeFiles/mpiExecutable.out.dir/code/MPI/main.c.o CMakeFiles/mpiExecutable.out.dir/code/MPI/MpiProduct.c.o -o ../build/mpiExecutable.out  libMatrix.a libTest.a -lmpichcxx -lmpich 

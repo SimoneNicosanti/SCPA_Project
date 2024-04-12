@@ -1,5 +1,0 @@
-/home/simone/Scrivania/University/SCPA/SCPA_Project/project/CMake/CMakeFiles/Matrix.dir
-/home/simone/Scrivania/University/SCPA/SCPA_Project/project/CMake/CMakeFiles/Test.dir
-/home/simone/Scrivania/University/SCPA/SCPA_Project/project/CMake/CMakeFiles/mpiExecutable.out.dir
-/home/simone/Scrivania/University/SCPA/SCPA_Project/project/CMake/CMakeFiles/edit_cache.dir
-/home/simone/Scrivania/University/SCPA/SCPA_Project/project/CMake/CMakeFiles/rebuild_cache.dir

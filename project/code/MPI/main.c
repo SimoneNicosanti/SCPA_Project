@@ -59,7 +59,6 @@ int main(int argc, char *argv[]) {
     // int periods[PROCESS_GRID_DIMS] = {0} ;
     // MPI_Cart_create(WORLD_COMM, PROCESS_GRID_DIMS, processGrid, periods, 0, &CART_COMM) ;
 
-
     createDataTypes(1, 13, 3, 3, processGrid) ;
 
     if (myRank == ROOT_PROCESS) {
@@ -71,7 +70,7 @@ int main(int argc, char *argv[]) {
             A[0][j] = j ;
         }
 
-        MPI_Send(&(A[0][0]), 1, ROW_INDEXED_SUBTYPES[1], 0, 10, WORLD_COMM) ;
+        MPI_Send(&(A[0][0]), 1, ROW_INDEXED_SUBTYPES[0], 0, 10, WORLD_COMM) ;
 
         double output[100] = {0} ;
         MPI_Recv(output, 6, MATRIX_NUM_TYPE, 0, 10, WORLD_COMM, MPI_STATUS_IGNORE) ;
@@ -112,6 +111,15 @@ void createDataTypes(int rowsNum, int colsNum, int rowsNumBlock, int colsNumBloc
         firstBlockLengthArray[i] = colsNumBlock ; 
     }
     firstBlockLengthArray[timesGridInColsDiv] = numColsLastProc ;
+    printf("COUNT: %d\n", timesGridInColsDiv) ;
+    for (int i = 0 ; i < timesGridInColsDiv ; i++) {
+        printf("%d ", firstBlockLengthArray[i]) ;
+    }
+    printf("\n") ;
+    for (int i = 0 ; i < timesGridInColsDiv ; i++) {
+        printf("%d ", displsArray[i]) ;
+    }
+    printf("\n") ;
     MPI_Type_indexed(timesGridInColsDiv, firstBlockLengthArray, displsArray, MATRIX_NUM_TYPE, &ROW_INDEXED_SUBTYPES[0]) ;
 
     int secondBlockLengthArray[timesGridInColsDiv] ;

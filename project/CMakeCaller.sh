@@ -1,3 +1,3 @@
-cd CMake
+cd build
 cmake ..
 cmake --build .
