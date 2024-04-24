@@ -51,12 +51,12 @@ double **allocRandomMatrix(int rowsNum, int colsNum) {
     return matrix ;
 }
 
-// Prints a matrix
-void printMatrix(double **matrix, int rowsNum, int colsNum) {
-    for (int i = 0 ; i < rowsNum ; i++) {
-        for (int j = 0 ; j < colsNum ; j++) {
-            printf("%f ", matrix[i][j]) ;
-        }
-        printf("\n") ;
-    }
-}
+// // Prints a matrix
+// void printMatrix(double **matrix, int rowsNum, int colsNum) {
+//     for (int i = 0 ; i < rowsNum ; i++) {
+//         for (int j = 0 ; j < colsNum ; j++) {
+//             printf("%f ", matrix[i][j]) ;
+//         }
+//         printf("\n") ;
+//     }
+// }

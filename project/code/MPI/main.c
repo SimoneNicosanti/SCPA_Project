@@ -21,7 +21,8 @@ MPI_Datatype ROW_INDEXED_SUBTYPES[3] ;
 MPI_Comm WORLD_COMM ;
 MPI_Comm CART_COMM ;
 
-ProcInfo procInfo ;
+
+int procRank ;
 
 
 
@@ -51,15 +52,21 @@ int main(int argc, char *argv[]) {
     int procNum ;
     MPI_Comm_rank(WORLD_COMM, &myRank);
     MPI_Comm_size(WORLD_COMM, &procNum);
+    procRank = myRank ;
 
     int processGrid[PROCESS_GRID_DIMS] = {0} ;
     MPI_Dims_create(procNum, PROCESS_GRID_DIMS, processGrid) ;
+    if (procRank == ROOT_PROCESS) {
+        printf("Cartesian Grid: [%d, %d]\n", processGrid[0], processGrid[1]) ;
+    }
 
     // Capire se conviene usare un comunicatore cartesiano o meno...
     // int periods[PROCESS_GRID_DIMS] = {0} ;
     // MPI_Cart_create(WORLD_COMM, PROCESS_GRID_DIMS, processGrid, periods, 0, &CART_COMM) ;
 
-    createDataTypes(1, 13, 3, 3, processGrid) ;
+    createDataTypes(1, 103, 20, 20, processGrid) ;
+
+    return ;
 
     if (myRank == ROOT_PROCESS) {
         double **A = allocRandomMatrix(1, 50) ;
@@ -85,14 +92,22 @@ int main(int argc, char *argv[]) {
 }
 
 void createDataTypes(int rowsNum, int colsNum, int rowsNumBlock, int colsNumBlock, int *processGrid) {
+    Content content ;
+
     int numDivsRows = rowsNum / rowsNumBlock + ((rowsNum % rowsNumBlock == 0) ? 0 : 1) ;
     int numDivsCols = colsNum / colsNumBlock + ((colsNum % colsNumBlock == 0) ? 0 : 1) ;
 
     int numRowsLastProc = rowsNum % rowsNumBlock ;
     int numColsLastProc = colsNum % colsNumBlock ;
 
+    // Times the grid fits in the matrix
     int timesGridInRowDiv = numDivsRows / processGrid[0] + (numDivsRows % processGrid[0] == 0 ? 0 : 1) ;
-    int timesGridInColsDiv = numDivsCols / processGrid[1] + (numDivsCols % processGrid[1] == 0 ? 0 : 1);
+    int timesGridInColsDiv = colsNum / (processGrid[1] * colsNumBlock) + (numDivsCols % (processGrid[1] * colsNumBlock) == 0 ? 0 : 1);
+    if (procRank == ROOT_PROCESS) {
+        printf("(RowsPerProc, ColsPerProc) = (%d, %d)\n", numDivsRows, numDivsCols) ;
+        printf("(RowsFinalPart, ColsFinalPart) = (%d, %d)\n", numRowsLastProc, numColsLastProc) ;
+        printf("(TimesGridInRows, TimesGridInCols) = (%d, %d)\n", timesGridInRowDiv, timesGridInColsDiv) ;
+    }
 
     /*
         Create three datatypes: 
@@ -100,34 +115,37 @@ void createDataTypes(int rowsNum, int colsNum, int rowsNumBlock, int colsNumBloc
             * One for middle process, with all blocks of size numPerProc but with n blocks
             * One for middle proc, with n+1 blocks all of the same size
     */
+
+    //First type: for the process that gets the last part of the cols
     int displsArray[timesGridInColsDiv] ;
     displsArray[0] = 0 ;
     for (int i = 1 ; i < timesGridInColsDiv ; i++) {
-        displsArray[i] = colsNumBlock + i * (processGrid[1] - 1) * colsNumBlock ;
+        displsArray[i] = i * processGrid[1] * colsNumBlock ;
     }
-
     int firstBlockLengthArray[timesGridInColsDiv] ;
     for (int i = 0 ; i < timesGridInColsDiv - 1 ; i++) {
         firstBlockLengthArray[i] = colsNumBlock ; 
     }
-    firstBlockLengthArray[timesGridInColsDiv] = numColsLastProc ;
-    printf("COUNT: %d\n", timesGridInColsDiv) ;
-    for (int i = 0 ; i < timesGridInColsDiv ; i++) {
-        printf("%d ", firstBlockLengthArray[i]) ;
-    }
-    printf("\n") ;
-    for (int i = 0 ; i < timesGridInColsDiv ; i++) {
-        printf("%d ", displsArray[i]) ;
-    }
-    printf("\n") ;
+    firstBlockLengthArray[timesGridInColsDiv - 1] = numColsLastProc ;
     MPI_Type_indexed(timesGridInColsDiv, firstBlockLengthArray, displsArray, MATRIX_NUM_TYPE, &ROW_INDEXED_SUBTYPES[0]) ;
+    
+    content.intArray = firstBlockLengthArray ;
+    printMessage("First Counts: ", content, INT_ARRAY, procRank, ROOT_PROCESS, timesGridInColsDiv, 0, 0) ;
+    content.intArray = displsArray ;
+    printMessage("First Displs: ", content, INT_ARRAY, procRank, ROOT_PROCESS, timesGridInColsDiv, 0, 1) ;
 
+    //Secondo tipo: per i processi che prendono blocchi completi
     int secondBlockLengthArray[timesGridInColsDiv] ;
     for (int i = 0 ; i < timesGridInColsDiv ; i++) {
         secondBlockLengthArray[i] = colsNumBlock ;
     }
     MPI_Type_indexed(timesGridInColsDiv, secondBlockLengthArray, displsArray, MATRIX_NUM_TYPE, &ROW_INDEXED_SUBTYPES[1]) ;
+    content.intArray = secondBlockLengthArray ;
+    printMessage("Second Counts: ", content, INT_ARRAY, procRank, ROOT_PROCESS, timesGridInColsDiv, 0, 0) ;
+    content.intArray = displsArray ;
+    printMessage("Second Displs: ", content, INT_ARRAY, procRank, ROOT_PROCESS, timesGridInColsDiv, 0, 1) ;
 
+    //Terzo tipo: per i processi che prendono un blocco in meno
     int thirdBlockLengthArray[timesGridInColsDiv - 1] ;
     for (int i = 0 ; i < timesGridInColsDiv - 1 ; i++) {
         thirdBlockLengthArray[i] = colsNumBlock ;
@@ -135,9 +153,13 @@ void createDataTypes(int rowsNum, int colsNum, int rowsNumBlock, int colsNumBloc
     int thirdDisplsArray[timesGridInColsDiv - 1] ;
     thirdDisplsArray[0] = 0 ;
     for (int i = 1 ; i < timesGridInColsDiv - 1 ; i++) {
-        thirdDisplsArray[i] = colsNumBlock + i * (processGrid[1] - 1) * colsNumBlock ;
+        thirdDisplsArray[i] = i * processGrid[1] * colsNumBlock ;
     }
     MPI_Type_indexed(timesGridInColsDiv - 1, thirdBlockLengthArray, thirdDisplsArray, MATRIX_NUM_TYPE, &ROW_INDEXED_SUBTYPES[2]) ;
+    content.intArray = thirdBlockLengthArray ;
+    printMessage("Third Counts: ", content, INT_ARRAY, procRank, ROOT_PROCESS, timesGridInColsDiv - 1, 0, 0) ;
+    content.intArray = thirdDisplsArray ;
+    printMessage("Third Displs: ", content, INT_ARRAY, procRank, ROOT_PROCESS, timesGridInColsDiv - 1, 0, 1) ;
 
     // Commit of the created datatypes
     for (int i = 0 ; i < 3 ; i++) {

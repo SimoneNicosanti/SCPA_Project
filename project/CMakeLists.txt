@@ -29,6 +29,8 @@ set(SOURCE_FILES
     code/MPI/main.c
     code/MPI/MpiProduct.c
     code/MPI/MpiProduct.h
+    code/MPI/Utils.c
+    code/MPI/Utils.h
 )
 add_executable(mpiExecutable.out 
     ${SOURCE_FILES}
