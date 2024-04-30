@@ -1,0 +1,14 @@
+
+mpiExecutable.out:68120 terminated with signal 11 at PC=70531c91a360 SP=7ffc37940b20.  Backtrace:
+/lib/x86_64-linux-gnu/libmpich.so.12(+0x171a360)[0x70531c91a360]
+/lib/x86_64-linux-gnu/libmpich.so.12(+0x2d407b)[0x70531b4d407b]
+/lib/x86_64-linux-gnu/libmpich.so.12(+0x2d6909)[0x70531b4d6909]
+/lib/x86_64-linux-gnu/libmpich.so.12(+0x217986)[0x70531b417986]
+/lib/x86_64-linux-gnu/libmpich.so.12(+0x260e01)[0x70531b460e01]
+/lib/x86_64-linux-gnu/libmpich.so.12(+0x20b5a89)[0x70531d2b5a89]
+/lib/x86_64-linux-gnu/libmpich.so.12(+0x20b60f1)[0x70531d2b60f1]
+/lib/x86_64-linux-gnu/libmpich.so.12(PMPI_Send+0x481)[0x70531b315041]
+./mpiExecutable.out(main+0x192)[0x5ce80e6be51b]
+/lib/x86_64-linux-gnu/libc.so.6(+0x29d90)[0x70531ae29d90]
+/lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x80)[0x70531ae29e40]
+./mpiExecutable.out(_start+0x25)[0x5ce80e6be2c5]

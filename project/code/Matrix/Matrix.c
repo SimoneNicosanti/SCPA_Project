@@ -5,10 +5,11 @@
 
 #define RAND_LOWER_BOUND -100
 #define RAND_UPPER_BOUND 100
-#define RAND_MAX 1000
 
 double generateRandomNumber(int min, int max) {
-    return min + ((double)rand() / RAND_MAX) * (max - min);
+
+    double scaled = (double)rand() / RAND_MAX ;
+    return min + scaled * (max - min);
 }
 
 /*

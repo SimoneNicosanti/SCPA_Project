@@ -1,0 +1,9 @@
+
+mpiExecutable.out:68550 terminated with signal 11 at PC=56577e320db7 SP=7ffc654c1980.  Backtrace:
+./mpiExecutable.out(printRealArray+0x3a)[0x56577e320db7]
+./mpiExecutable.out(printMatrix+0x43)[0x56577e320e48]
+./mpiExecutable.out(printMessage+0xf0)[0x56577e320c9d]
+./mpiExecutable.out(main+0x335)[0x56577e3206be]
+/lib/x86_64-linux-gnu/libc.so.6(+0x29d90)[0x716b3c229d90]
+/lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x80)[0x716b3c229e40]
+./mpiExecutable.out(_start+0x25)[0x56577e3202c5]

@@ -9,6 +9,7 @@ void printMessage(char *header, Content content, MESSAGE_TYPE type, int rank, in
         return ;
     }
 
+    printf("PROCESS %d LOG > \n", rank) ;
     switch (type)
     {
     case STRING:
