@@ -11,17 +11,14 @@
 #define PROCESS_GRID_DIMS 2
 #define TYPE_MATRIX_NUM MPI_DOUBLE
 #define ROOT_PROCESS 0
+#define SEND_TAG 100
 
 MPI_Comm WORLD_COMM ;
 MPI_Comm CART_COMM ;
 
-MPI_Datatype TYPE_COLS_VECTOR ;
-MPI_Datatype TYPE_SEQ_VECTORS ;
-MPI_Datatype TYPE_SEQ_SEQ ;
-
-MPI_Datatype RECV_SUBARRAYS[3] ;
 
 int procRank ;
+int PROCESS_GRID[PROCESS_GRID_DIMS] = {0} ;
 
 int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *mbPtr, int *kbPtr, int *nbPtr) ;
 void createSendDataTypes(int rowsNum, int colsNum, int blockRows, int blockCols, int *processGrid, MPI_Datatype typesMatrix[3][3]) ;
@@ -38,6 +35,17 @@ void computeSubMatrixDimsPerProc(
     int blockRows, int blockCols, 
     int *subMatRowsNum, int *subMatColsNum
 ) ;
+
+void executeCompleteProduct(
+    double **subA, double **subB,
+    int m, int k, int n,
+    int mb, int kb, int nb,
+    int subm, int subk, int subn
+) ;
+
+void matrixSend(double **matrix, int rows, int cols, int blockRows, int blockCols, int *processGrid) ;
+double **matrixRecv(int rows, int cols, int blockRows, int blockCols, int *processGrid) ;
+
 
 
 int main(int argc, char *argv[]) {
@@ -65,54 +73,109 @@ int main(int argc, char *argv[]) {
     MPI_Comm_size(WORLD_COMM, &procNum);
     procRank = myRank ;
 
-    int processGrid[PROCESS_GRID_DIMS] = {0} ;
-    MPI_Dims_create(procNum, PROCESS_GRID_DIMS, processGrid) ;
+    //int PROCESS_GRID[PROCESS_GRID_DIMS] = {0} ;
+    MPI_Dims_create(procNum, PROCESS_GRID_DIMS, PROCESS_GRID) ;
     if (procRank == ROOT_PROCESS) {
-        printf("Cartesian Grid: [%d, %d]\n", processGrid[0], processGrid[1]) ;
+        printf("Cartesian Grid: [%d, %d]\n", PROCESS_GRID[0], PROCESS_GRID[1]) ;
     }
     int periods[2] = {0, 0} ;
-    MPI_Cart_create(WORLD_COMM, 2, processGrid, periods, 0, &CART_COMM) ;
+    MPI_Cart_create(WORLD_COMM, 2, PROCESS_GRID, periods, 0, &CART_COMM) ;
 
-    int M = 9 ; 
-    int N = 9 ;
-    int blockRows = 10 ;
-    int blockCols = 10 ;
     if (myRank == ROOT_PROCESS) {
-        MPI_Datatype matrixTypes[3][3] ;
-        createSendDataTypes(M, N, blockRows, blockCols, processGrid, matrixTypes) ;
-    
-        double **A = allocRandomMatrix(M, N) ;
-        for (int i = 0 ; i < M ; i++) {
-            for (int j = 0 ; j < N ; j++) {
-                A[i][j] = i * N + j ;
+        double **A = allocRandomMatrix(m, k) ;
+        for (int i = 0 ; i < m ; i++) {
+            for (int j = 0 ; j < k ; j++) {
+                A[i][j] = i * k + j ;
             }
         }
-        
-        for (int procRow = 0 ; procRow < processGrid[0] ; procRow++) {
-            for (int procCol = 0 ; procCol < processGrid[1] ; procCol++) {
-                int coords[2] = {procRow, procCol} ;
-                int proc ;
-                MPI_Cart_rank(CART_COMM, coords, &proc) ;
 
-                MPI_Datatype sendType = computeSendTypeForProc(procRow, procCol, processGrid, M, N, blockRows, blockCols, matrixTypes) ;
-                MPI_Send(&(A[procRow * blockRows][procCol * blockCols]), 1, sendType, proc, 10, WORLD_COMM) ;
+        // TODO > Capire se ha senso allocare B per colonne, ma in teoria bisognerebbe trovare un modo di "trasporre" il comunicatore
+        // Se "traspongo" (alloco all'inverso) la matrice l'effetto è lo stesso
+        // La trasposizione del comunicatore la posso fare invertendo le variabili nei cicli di send
+        // Per ora lasciare così, poi si vede che in caso non è difficile sistemare
+        double **B = allocRandomMatrix(n, k) ;
+        for (int i = 0 ; i < n ; i++) {
+            for (int j = 0 ; j < k ; j++) {
+                B[j][i] = i * k + j ;
             }
         }
+
+        matrixSend(A, m, k, mb, kb, PROCESS_GRID) ; // SEND A
+        matrixSend(B, n, k, nb, kb, PROCESS_GRID) ; // SEND B
     }
 
-    int subMatRows, subMatCols ;
-    int procCoords[2] ;
-    MPI_Cart_coords(CART_COMM, myRank, 2, procCoords) ;
+    int subm ;
+    int subk ; 
+    int subn ;
+    double **subA = matrixRecv(m, k, mb, kb, PROCESS_GRID) ;
+    double **subB = matrixRecv(n, k, nb, kb, PROCESS_GRID) ;
 
-    computeSubMatrixDimsPerProc(procCoords[0], procCoords[1], processGrid, M, N, blockRows, blockCols, &subMatRows, &subMatCols) ;
-    double **subA = allocMatrix(subMatRows, subMatCols) ;
-    MPI_Recv(&(subA[0][0]), subMatRows * subMatCols, TYPE_MATRIX_NUM, ROOT_PROCESS, 10, WORLD_COMM, MPI_STATUS_IGNORE) ;
-    
-    Content content ;
-    content.matrix = subA ;
-    printMessage("SUB A: ", content, MATRIX, procRank, 0, subMatRows, subMatCols, 1) ;
+    executeCompleteProduct(subA, subB, m, k, n, mb, kb, nb, subm, subk, subn) ;
 
     return 0 ;
+}
+
+// Executes C <- A * B sui sottoblocchi
+// Capire se va bene usare delle variabili globali per il rank e per il process grid
+void executeCompleteProduct(
+    double **subA, double **subB,
+    int m, int k, int n,
+    int mb, int kb, int nb,
+    int subm, int subk, int subn
+) {
+
+    for (int i = 0 ; i < PROCESS_GRID[1] ; i++) {
+        double **subC = allocMatrix(subm, subn) ;
+        subMatrixProduct(subA, subB, subC, subm, subk, subn) ;
+
+
+        free(&(subC[0][0])) ;
+    }
+    
+
+
+    //TODO  > Ciclo sullo scambio di blocchetti
+    //TODO  > Faccio prodotto tra sotto blocchi
+    //TODO  > Faccio un comunicatore sulle COLONNE della griglia
+    //TODO  > Faccio la REDUCE delle sottomatrici prodotte e ottengo la sottomatrice per C.
+    //          La GATHER la faccio con radice il sottoblocco di C
+    //TODO  > Mi serve anche la GATHER da qualche parte probabilmente per ricostruire il tutto
+    //TODO  > Mi conviene inviare una porzione di C anche alle root dei comunicatori di colonna 
+    //      > in modo che anche la somma C + A*B sia distribuita allo stesso modo
+    //TODO  > Scambio la sottomatrice B tra processi (MPI_CART_SHIFT + MPI_SENDRECV)
+    //TODO  > Riunisco tutto quanto insieme
+}
+
+double **matrixRecv(int rows, int cols, int blockRows, int blockCols, int *processGrid) {
+    int subMatRows, subMatCols ;
+    int procCoords[2] ;
+    MPI_Cart_coords(CART_COMM, procRank, 2, procCoords) ;
+
+    computeSubMatrixDimsPerProc(procCoords[0], procCoords[1], processGrid, rows, cols, blockRows, blockCols, &subMatRows, &subMatCols) ;
+    double **subMat = allocMatrix(subMatRows, subMatCols) ;
+    MPI_Recv(&(subMat[0][0]), subMatRows * subMatCols, TYPE_MATRIX_NUM, ROOT_PROCESS, SEND_TAG, WORLD_COMM, MPI_STATUS_IGNORE) ;
+    
+    Content content ;
+    content.matrix = subMat ;
+    printMessage("SUB MATRIX: ", content, MATRIX, procRank, 0, subMatRows, subMatCols, 1) ;
+
+    return subMat ;
+}
+
+void matrixSend(double **matrix, int rows, int cols, int blockRows, int blockCols, int *processGrid) {
+    MPI_Datatype matrixTypes[3][3] ;
+    createSendDataTypes(rows, cols, blockRows, blockCols, processGrid, matrixTypes) ;
+
+    for (int procRow = 0 ; procRow < processGrid[0] ; procRow++) {
+        for (int procCol = 0 ; procCol < processGrid[1] ; procCol++) {
+            int coords[2] = {procRow, procCol} ;
+            int proc ;
+            MPI_Cart_rank(CART_COMM, coords, &proc) ;
+
+            MPI_Datatype sendType = computeSendTypeForProc(procRow, procCol, processGrid, rows, cols, blockRows, blockCols, matrixTypes) ;
+            MPI_Send(&(matrix[procRow * blockRows][procCol * blockCols]), 1, sendType, proc, SEND_TAG, WORLD_COMM) ;
+        }
+    }
 }
 
 MPI_Datatype computeSendTypeForProc(
@@ -225,7 +288,7 @@ void computeSubMatrixDimsPerProc(
     int timesBlockInFinalRows = finalRowsNum / blockRows ;
     int timesBlockInFinalCols = finalColsNum / blockCols ;
 
-    printf("Times %d %d\n", timesBlockInFinalRows, timesBlockInFinalCols) ;
+    //printf("Times %d %d\n", timesBlockInFinalRows, timesBlockInFinalCols) ;
     int residualRecvdRows ;
     if (rowRank % processGrid[0] < timesBlockInFinalRows) {
         residualRecvdRows = blockRows ;
