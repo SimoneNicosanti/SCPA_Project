@@ -26,12 +26,14 @@ int procRank ;
 int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *mbPtr, int *kbPtr, int *nbPtr) ;
 void createSendDataTypes(int rowsNum, int colsNum, int blockRows, int blockCols, int *processGrid, MPI_Datatype typesMatrix[3][3]) ;
 MPI_Datatype computeSendTypeForProc(
-    int rank, 
+    int rowRank, int colRank, int *processGrid,
     int rowsNum, int colsNum, 
-    int blockRows, int blockCols, 
-    int *processGrid, MPI_Datatype typesMatrix[3][3]) ;
+    int blockRows, int blockCols,  
+    MPI_Datatype typesMatrix[3][3]
+) ;
+
 void computeSubMatrixDimsPerProc(
-    int procRank, int *processGrid, 
+    int rowRank, int colRank, int *processGrid, 
     int rowsNum, int colsNum, 
     int blockRows, int blockCols, 
     int *subMatRowsNum, int *subMatColsNum
@@ -71,8 +73,8 @@ int main(int argc, char *argv[]) {
     int periods[2] = {0, 0} ;
     MPI_Cart_create(WORLD_COMM, 2, processGrid, periods, 0, &CART_COMM) ;
 
-    int M = 13 ; 
-    int N = 13 ;
+    int M = 9 ; 
+    int N = 9 ;
     int blockRows = 10 ;
     int blockCols = 10 ;
     if (myRank == ROOT_PROCESS) {
@@ -87,31 +89,38 @@ int main(int argc, char *argv[]) {
         }
         
         for (int procRow = 0 ; procRow < processGrid[0] ; procRow++) {
-            for (int procCol = 0 ; procCol < processGrid[0] ; procCol++) {
+            for (int procCol = 0 ; procCol < processGrid[1] ; procCol++) {
                 int coords[2] = {procRow, procCol} ;
                 int proc ;
                 MPI_Cart_rank(CART_COMM, coords, &proc) ;
 
-                printf("Process %d %d >> %d\n", procRow, procCol, proc) ;
-
-                MPI_Datatype sendType = computeSendTypeForProc(proc, M, N, blockRows, blockCols, processGrid, matrixTypes) ;
+                MPI_Datatype sendType = computeSendTypeForProc(procRow, procCol, processGrid, M, N, blockRows, blockCols, matrixTypes) ;
                 MPI_Send(&(A[procRow * blockRows][procCol * blockCols]), 1, sendType, proc, 10, WORLD_COMM) ;
             }
         }
     }
 
     int subMatRows, subMatCols ;
-    computeSubMatrixDimsPerProc(myRank, processGrid, M, N, blockRows, blockCols, &subMatRows, &subMatCols) ;
+    int procCoords[2] ;
+    MPI_Cart_coords(CART_COMM, myRank, 2, procCoords) ;
+
+    computeSubMatrixDimsPerProc(procCoords[0], procCoords[1], processGrid, M, N, blockRows, blockCols, &subMatRows, &subMatCols) ;
     double **subA = allocMatrix(subMatRows, subMatCols) ;
     MPI_Recv(&(subA[0][0]), subMatRows * subMatCols, TYPE_MATRIX_NUM, ROOT_PROCESS, 10, WORLD_COMM, MPI_STATUS_IGNORE) ;
+    
     Content content ;
     content.matrix = subA ;
-    printMessage("SUB A: ", content, MATRIX, procRank, 2, subMatRows, subMatCols, 1) ;
+    printMessage("SUB A: ", content, MATRIX, procRank, 0, subMatRows, subMatCols, 1) ;
 
     return 0 ;
 }
 
-MPI_Datatype computeSendTypeForProc(int rank, int rowsNum, int colsNum, int blockRows, int blockCols, int *processGrid, MPI_Datatype typesMatrix[3][3]) {
+MPI_Datatype computeSendTypeForProc(
+    int rowRank, int colRank, int *processGrid,
+    int rowsNum, int colsNum, 
+    int blockRows, int blockCols,  
+    MPI_Datatype typesMatrix[3][3]
+) {
     int timesGridInRows = rowsNum / (processGrid[0] * blockRows) ;
     int timesGridInCols = colsNum / (processGrid[1] * blockCols) ;
 
@@ -122,24 +131,22 @@ MPI_Datatype computeSendTypeForProc(int rank, int rowsNum, int colsNum, int bloc
     int timesBlockInFinalCols = finalColsNum / blockCols ;
 
     int typeIndexRow ;
-    if (rank % processGrid[0] < timesBlockInFinalRows) {
+    if (rowRank % processGrid[0] < timesBlockInFinalRows) {
         typeIndexRow = 0 ;
-    } else if (rank % processGrid[0] == timesBlockInFinalRows) {
+    } else if (rowRank % processGrid[0] == timesBlockInFinalRows) {
         typeIndexRow = 1 ;
     } else {
         typeIndexRow = 2 ;
     }
 
     int typeIndexCol ;
-    if (rank % processGrid[1] < timesBlockInFinalCols) {
+    if (colRank % processGrid[1] < timesBlockInFinalCols) {
         typeIndexCol = 0 ;
-    } else if (rank % processGrid[1] == timesBlockInFinalCols) {
+    } else if (colRank % processGrid[1] == timesBlockInFinalCols) {
         typeIndexCol = 1 ;
     } else {
         typeIndexCol = 2 ;
     }
-
-    printf("Type for %d >> %d %d\n", rank, typeIndexRow, typeIndexCol) ;
 
     return typesMatrix[typeIndexRow][typeIndexCol] ;
 }
@@ -170,8 +177,6 @@ void createSendDataTypes(int rowsNum, int colsNum, int blockRows, int blockCols,
     MPI_Type_indexed(timesGridInCols + 1, blockLengths, displs, TYPE_MATRIX_NUM, &indexedTypes[1]) ;
 
     MPI_Type_indexed(timesGridInCols, blockLengths, displs, TYPE_MATRIX_NUM, &indexedTypes[2]) ;
-    
-    //CREATED TYPES FOR INDEXED ROW
 
     int count = blockRows * (timesGridInRows + 1) ;
     MPI_Aint displs_2[count] ;
@@ -205,7 +210,7 @@ void createSendDataTypes(int rowsNum, int colsNum, int blockRows, int blockCols,
 
 
 void computeSubMatrixDimsPerProc(
-    int rank, int *processGrid, 
+    int rowRank, int colRank, int *processGrid, 
     int rowsNum, int colsNum, 
     int blockRows, int blockCols, 
     int *subMatRowsNum, int *subMatColsNum
@@ -222,18 +227,18 @@ void computeSubMatrixDimsPerProc(
 
     printf("Times %d %d\n", timesBlockInFinalRows, timesBlockInFinalCols) ;
     int residualRecvdRows ;
-    if (rank % processGrid[0] < timesBlockInFinalRows) {
+    if (rowRank % processGrid[0] < timesBlockInFinalRows) {
         residualRecvdRows = blockRows ;
-    } else if (rank % processGrid[0] == timesBlockInFinalRows) {
+    } else if (rowRank % processGrid[0] == timesBlockInFinalRows) {
         residualRecvdRows = finalRowsNum % blockRows ;
     } else {
         residualRecvdRows = 0 ;
     }
 
     int residualRecvdCols ;
-    if (rank % processGrid[1] < timesBlockInFinalCols) {
+    if (colRank % processGrid[1] < timesBlockInFinalCols) {
         residualRecvdCols = blockCols ;
-    } else if (rank % processGrid[1] == timesBlockInFinalCols) {
+    } else if (colRank % processGrid[1] == timesBlockInFinalCols) {
         residualRecvdCols = finalColsNum % blockCols ;
     } else {
         residualRecvdCols = 0 ;
@@ -241,8 +246,6 @@ void computeSubMatrixDimsPerProc(
 
     *subMatRowsNum = blockRows * timesGridInRows + residualRecvdRows ;
     *subMatColsNum = blockCols * timesGridInCols + residualRecvdCols ;
-
-    printf("Dims per proc %d >> %d %d\n", rank, *subMatRowsNum, *subMatColsNum) ;
 }
 
 
