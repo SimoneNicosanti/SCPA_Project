@@ -50,8 +50,8 @@ void executeCompleteProduct(
     double **C
 ) ;
 
-void matrixSend(double **matrix, int rows, int cols, int blockRows, int blockCols, int *processGrid) ;
-double **matrixRecv(int rows, int cols, int blockRows, int blockCols, int *processGrid, int *subRowsPtr, int *subColsPtr) ;
+void matrixSend(double **matrix, int rows, int cols, int blockRows, int blockCols, int *processGrid, int invert) ;
+double **matrixRecv(int rows, int cols, int blockRows, int blockCols, int *processGrid, int *subRowsPtr, int *subColsPtr, int invert) ;
 
 void createReduceCommunicator() ;
 void subMatrixProduct(double **subA, double **subB, double **cSubProd, int subm, int subk, int subn) ;
@@ -89,6 +89,10 @@ int main(int argc, char *argv[]) {
     MPI_Cart_create(WORLD_COMM, 2, PROCESS_GRID, periods, 0, &CART_COMM) ;
     MPI_Cart_coords(CART_COMM, processInfo.myRank, 2, &processInfo.myCoords) ;
 
+    int invertedGrid[2] ;
+    invertedGrid[0] = PROCESS_GRID[1] ;
+    invertedGrid[1] = PROCESS_GRID[0] ;
+
     if (processInfo.myRank == ROOT_PROCESS) {
         double **A = allocRandomMatrix(m, k) ;
         for (int i = 0 ; i < m ; i++) {
@@ -97,19 +101,15 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        // TODO > Capire se ha senso allocare B per colonne, ma in teoria bisognerebbe trovare un modo di "trasporre" il comunicatore
-        // Se "traspongo" (alloco all'inverso) la matrice l'effetto è lo stesso
-        // La trasposizione del comunicatore la posso fare invertendo le variabili nei cicli di send
-        // Per ora lasciare così, poi si vede che in caso non è difficile sistemare
-        double **B = allocRandomMatrix(n, k) ;
-        for (int i = 0 ; i < n ; i++) {
-            for (int j = 0 ; j < k ; j++) {
-                B[j][i] = i * k + j ;
+        double **B = allocRandomMatrix(k, n) ;
+        for (int i = 0 ; i < k ; i++) {
+            for (int j = 0 ; j < n ; j++) {
+                B[i][j] = i * n + j ;
             }
         }
 
-        matrixSend(A, m, k, mb, kb, PROCESS_GRID) ; // SEND A
-        matrixSend(B, n, k, nb, kb, PROCESS_GRID) ; // SEND B
+        matrixSend(A, m, k, mb, kb, PROCESS_GRID, 0) ; // SEND A
+        matrixSend(B, k, n, kb, nb, invertedGrid, 1) ; // SEND B
 
         //SEND C solo ai processi root di una REDUCE
         // int procCoords[2] ;
@@ -125,8 +125,8 @@ int main(int argc, char *argv[]) {
     int subm ;
     int subk ; 
     int subn ;
-    double **subA = matrixRecv(m, k, mb, kb, PROCESS_GRID, &subm, &subk) ;
-    double **subB = matrixRecv(n, k, nb, kb, PROCESS_GRID, &subn, &subk) ;
+    double **subA = matrixRecv(m, k, mb, kb, PROCESS_GRID, &subm, &subk, 0) ;
+    double **subB = matrixRecv(k, n, kb, nb, invertedGrid, &subk, &subn, 1) ;
     double **subC = NULL ;
     // TODO IF IS ROOT OF REDUCE --> RECV subC
     double **C ;
@@ -268,18 +268,23 @@ void subMatrixProduct(double **subA, double **subB, double **subC, int subm, int
         for (int j = 0 ; j < subn ; j++) {
             for (int t = 0 ; t < subk ; t++) {
                 //printf("A , B = %f , %f\n", subA[i][t], subB[j][t]) ;
-                subC[i][j] += subA[i][t] * subB[j][t] ;
+                subC[i][j] += subA[i][t] * subB[t][j] ;
             }
-            //printf("Value %f\n", subC[i][j]) ;
         }
     }
 }
 
 
-double **matrixRecv(int rows, int cols, int blockRows, int blockCols, int *processGrid, int *subRowsPtr, int *subColsPtr) {
+double **matrixRecv(int rows, int cols, int blockRows, int blockCols, int *processGrid, int *subRowsPtr, int *subColsPtr, int invert) {
     int subMatRows, subMatCols ;
     int procCoords[2] ;
     MPI_Cart_coords(CART_COMM, processInfo.myRank, 2, procCoords) ;
+
+    if (invert) {
+        int temp = procCoords[0] ;
+        procCoords[0] = procCoords[1] ;
+        procCoords[1] = temp ;
+    }
 
     computeSubMatrixDimsPerProc(procCoords[0], procCoords[1], processGrid, rows, cols, blockRows, blockCols, &subMatRows, &subMatCols) ;
     double **subMat = allocMatrix(subMatRows, subMatCols) ;
@@ -287,20 +292,24 @@ double **matrixRecv(int rows, int cols, int blockRows, int blockCols, int *proce
     
     Content content ;
     content.matrix = subMat ;
-    //printMessage("SUB MATRIX: ", content, MATRIX, processInfo.myRank, 0, subMatRows, subMatCols, 1) ;
+    printMessage("SUB MATRIX: ", content, MATRIX, processInfo.myRank, 1, subMatRows, subMatCols, 1) ;
 
     *subRowsPtr = subMatRows ;
     *subColsPtr = subMatCols ;
     return subMat ;
 }
 
-void matrixSend(double **matrix, int rows, int cols, int blockRows, int blockCols, int *processGrid) {
+void matrixSend(double **matrix, int rows, int cols, int blockRows, int blockCols, int *processGrid, int invert) {
     MPI_Datatype matrixTypes[3][3] ;
     createSendDataTypes(rows, cols, blockRows, blockCols, processGrid, matrixTypes) ;
 
     for (int procRow = 0 ; procRow < processGrid[0] ; procRow++) {
         for (int procCol = 0 ; procCol < processGrid[1] ; procCol++) {
             int coords[2] = {procRow, procCol} ;
+            if (invert) {
+                coords[0] = procCol ;
+                coords[1] = procRow ;
+            }
             int proc ;
             MPI_Cart_rank(CART_COMM, coords, &proc) ;
 
