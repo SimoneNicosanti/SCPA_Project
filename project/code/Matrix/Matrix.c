@@ -14,7 +14,8 @@ double generateRandomNumber(int min, int max) {
 
 /*
     Allocs a matrix with continuous data but giving back
-    an array pointing to the beginning of each row
+    an array pointing to the beginning of each row.
+    The matrix is initialized to zero
 */
 double **allocMatrix(int rowsNum, int colsNum) {
     double *matrixData = calloc(rowsNum * colsNum, sizeof(double));

@@ -15,10 +15,14 @@
 
 MPI_Comm WORLD_COMM ;
 MPI_Comm CART_COMM ;
-MPI_Comm REDUCE_COMM ;
+MPI_Comm *REDUCE_COMM_ARRAY ;
 
+typedef struct ProcessInfo {
+    int myRank ;
+    int myCoords[2] ;
+} ProcessInfo ;
 
-int procRank ;
+ProcessInfo processInfo ;
 int PROCESS_GRID[PROCESS_GRID_DIMS] = {0} ;
 
 int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *mbPtr, int *kbPtr, int *nbPtr) ;
@@ -47,7 +51,7 @@ void executeCompleteProduct(
 ) ;
 
 void matrixSend(double **matrix, int rows, int cols, int blockRows, int blockCols, int *processGrid) ;
-double **matrixRecv(int rows, int cols, int blockRows, int blockCols, int *processGrid) ;
+double **matrixRecv(int rows, int cols, int blockRows, int blockCols, int *processGrid, int *subRowsPtr, int *subColsPtr) ;
 
 void createReduceCommunicator() ;
 void subMatrixProduct(double **subA, double **subB, double **cSubProd, int subm, int subk, int subn) ;
@@ -72,21 +76,20 @@ int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv) ;
     MPI_Comm_dup(MPI_COMM_WORLD, &WORLD_COMM);
 
-    int myRank ;
     int procNum ;
-    MPI_Comm_rank(WORLD_COMM, &myRank);
+    MPI_Comm_rank(WORLD_COMM, &processInfo.myRank);
     MPI_Comm_size(WORLD_COMM, &procNum);
-    procRank = myRank ;
 
     //int PROCESS_GRID[PROCESS_GRID_DIMS] = {0} ;
     MPI_Dims_create(procNum, PROCESS_GRID_DIMS, PROCESS_GRID) ;
-    if (procRank == ROOT_PROCESS) {
+    if (processInfo.myRank == ROOT_PROCESS) {
         printf("Cartesian Grid: [%d, %d]\n", PROCESS_GRID[0], PROCESS_GRID[1]) ;
     }
     int periods[2] = {0, 0} ;
     MPI_Cart_create(WORLD_COMM, 2, PROCESS_GRID, periods, 0, &CART_COMM) ;
+    MPI_Cart_coords(CART_COMM, processInfo.myRank, 2, &processInfo.myCoords) ;
 
-    if (myRank == ROOT_PROCESS) {
+    if (processInfo.myRank == ROOT_PROCESS) {
         double **A = allocRandomMatrix(m, k) ;
         for (int i = 0 ; i < m ; i++) {
             for (int j = 0 ; j < k ; j++) {
@@ -109,22 +112,22 @@ int main(int argc, char *argv[]) {
         matrixSend(B, n, k, nb, kb, PROCESS_GRID) ; // SEND B
 
         //SEND C solo ai processi root di una REDUCE
-        int procCoords[2] ;
-        for (int j = 0 ; j < PROCESS_GRID[1] ; j++) {
-            procCoords[0] = 0 ;
-            procCoords[1] = j ;
-            int destProc ;
-            MPI_Cart_rank(CART_COMM, procCoords, &destProc) ;
+        // int procCoords[2] ;
+        // for (int j = 0 ; j < PROCESS_GRID[1] ; j++) {
+        //     procCoords[0] = 0 ;
+        //     procCoords[1] = j ;
+        //     int destProc ;
+        //     MPI_Cart_rank(CART_COMM, procCoords, &destProc) ;
             
-        }
+        // }
     }
 
     int subm ;
     int subk ; 
     int subn ;
-    double **subA = matrixRecv(m, k, mb, kb, PROCESS_GRID) ;
-    double **subB = matrixRecv(n, k, nb, kb, PROCESS_GRID) ;
-    double **subC ;
+    double **subA = matrixRecv(m, k, mb, kb, PROCESS_GRID, &subm, &subk) ;
+    double **subB = matrixRecv(n, k, nb, kb, PROCESS_GRID, &subn, &subk) ;
+    double **subC = NULL ;
     // TODO IF IS ROOT OF REDUCE --> RECV subC
     double **C ;
 
@@ -134,7 +137,7 @@ int main(int argc, char *argv[]) {
 }
 
 // Executes C <- A * B sui sottoblocchi
-// Capire se va bene usare delle variabili globali per il rank e per il process grid
+// TODO > Capire se va bene usare delle variabili globali per il rank e per il process grid
 void executeCompleteProduct(
     double **subA, double **subB, double **subC,
     int m, int k, int n,
@@ -143,11 +146,10 @@ void executeCompleteProduct(
     double **C
 ) {
 
+    Content content ;
+
     MPI_Datatype returnTypes[3][3] ;
     createSendDataTypes(m, n, mb, nb, PROCESS_GRID, returnTypes) ;
-
-    int processCords[2] ;
-    MPI_Cart_coords(CART_COMM, procRank, 2, processCords) ;
 
     createReduceCommunicator() ;
     
@@ -156,15 +158,14 @@ void executeCompleteProduct(
 
         // Se non ho nulla dentro allora il processo non è una root di una REDUCE --> Init a 0
         // Altrimenti --> Init alla sotto matrice ricevuta per C
-        if (subC == NULL) {
-            memset(&(cSubProd[0][0]), 0, sizeof(double) * subm * subn) ;
-        } else {
+        if (subC != NULL) {
             memcpy(&(cSubProd[0][0]), &(subC[0][0]), sizeof(double) * subm * subn) ;
         }
         
         subMatrixProduct(subA, subB, cSubProd, subm, subk, subn) ;
+        return ;
 
-        reduceAndSendToRoot(C, cSubProd, m, n, mb, nb, subm, subn, returnTypes, i, processCords) ;
+        reduceAndSendToRoot(C, cSubProd, m, n, mb, nb, subm, subn, returnTypes, i) ;
 
         exchangeSubMatrices(&subB, &subC, m, k, n, &subm, &subk, &subn, mb, kb, nb, i) ;
 
@@ -175,8 +176,8 @@ void executeCompleteProduct(
 void exchangeSubMatrices(double ***subB, double ***subC, int m, int k, int n, int *submPtr, int *subkPtr, int *subnPtr, int mb, int kb, int nb, int i) {
     int nextRank ;
     int prevRank ;
-    MPI_Cart_shift(CART_COMM, 1, i + 1, procRank, &nextRank) ;
-    MPI_Cart_shift(CART_COMM, 1, -i - 1, procRank, &prevRank) ;
+    MPI_Cart_shift(CART_COMM, 1, i + 1, processInfo.myRank, &nextRank) ;
+    MPI_Cart_shift(CART_COMM, 1, -i - 1, processInfo.myRank, &prevRank) ;
     
     int subm = *submPtr ;
     int subk = *subkPtr ;
@@ -214,16 +215,16 @@ void exchangeSubMatrices(double ***subB, double ***subC, int m, int k, int n, in
     *subC = newSubC ;
 }
 
-void reduceAndSendToRoot(double **C, double **subC, int m, int n, int mb, int nb, int subm, int subn, MPI_Datatype returnTypes[3][3], int i, int *procCords) {
-    MPI_Reduce(&(subC[0][0]), &(subC[0][0]), subm * subn, TYPE_MATRIX_NUM, MPI_SUM, 0, REDUCE_COMM) ;
+void reduceAndSendToRoot(double **C, double **subC, int m, int n, int mb, int nb, int subm, int subn, MPI_Datatype returnTypes[3][3], int i) {
+    //MPI_Reduce(&(subC[0][0]), &(subC[0][0]), subm * subn, TYPE_MATRIX_NUM, MPI_SUM, 0, REDUCE_COMM) ;
 
-    if (procCords[1] == 0) {
+    if (processInfo.myCoords[1] == 0) {
         // Significa che è root di un comunicatore di REDUCE
         // Devo mandare quello che ho calcolato alla ROOT
         MPI_Send(&(subC[0][0]), subm * subn, TYPE_MATRIX_NUM, ROOT_PROCESS, SEND_TAG, CART_COMM) ;
     }
 
-    if (procRank == ROOT_PROCESS) {
+    if (processInfo.myRank == ROOT_PROCESS) {
         for (int proc = 0 ; proc < PROCESS_GRID[0] ; proc++) {
             int senderProcCoords[2] ;
             MPI_Datatype returnType ;
@@ -231,7 +232,7 @@ void reduceAndSendToRoot(double **C, double **subC, int m, int n, int mb, int nb
                 MPI_Cart_coords(CART_COMM, proc, 2, senderProcCoords) ;
             } else {
                 int prevRank ;
-                MPI_Cart_shift(CART_COMM, 1, -i - 1, procRank, &prevRank) ;
+                MPI_Cart_shift(CART_COMM, 1, -i - 1, processInfo.myRank, &prevRank) ;
                 MPI_Cart_coords(CART_COMM, prevRank, 2, senderProcCoords) ;
             }
             returnType = computeSendTypeForProc(senderProcCoords[0], senderProcCoords[1], PROCESS_GRID, m, n, mb, nb, returnTypes) ;
@@ -242,6 +243,8 @@ void reduceAndSendToRoot(double **C, double **subC, int m, int n, int mb, int nb
 }
 
 void createReduceCommunicator() {
+    REDUCE_COMM_ARRAY = (MPI_Comm *) malloc(sizeof(MPI_Comm) * PROCESS_GRID[0]) ;
+
     MPI_Group cartGroup ;
     MPI_Comm_group(CART_COMM, &cartGroup) ;
     int newGroupRanks[PROCESS_GRID[1]] ;
@@ -254,14 +257,9 @@ void createReduceCommunicator() {
         }
 
         MPI_Group newGroup ;
-        MPI_Group_incl(cartGroup, PROCESS_GRID[0], newGroupRanks, &newGroup) ;
+        MPI_Group_incl(cartGroup, PROCESS_GRID[1], newGroupRanks, &newGroup) ;
         MPI_Comm newComm ;
-        MPI_Comm_create(CART_COMM, newGroup, &newComm) ;
-
-        MPI_Cart_coords(CART_COMM, procRank, 2, procCoords) ;
-        if (procCoords[0] == 0) {
-            MPI_Comm_dup(newComm, &REDUCE_COMM) ;
-        }
+        MPI_Comm_create(CART_COMM, newGroup, &REDUCE_COMM_ARRAY[i]) ;
     }
 }
 
@@ -269,17 +267,19 @@ void subMatrixProduct(double **subA, double **subB, double **subC, int subm, int
     for (int i = 0 ; i < subm ; i++) {
         for (int j = 0 ; j < subn ; j++) {
             for (int t = 0 ; t < subk ; t++) {
+                //printf("A , B = %f , %f\n", subA[i][t], subB[j][t]) ;
                 subC[i][j] += subA[i][t] * subB[j][t] ;
             }
+            //printf("Value %f\n", subC[i][j]) ;
         }
     }
 }
 
 
-double **matrixRecv(int rows, int cols, int blockRows, int blockCols, int *processGrid) {
+double **matrixRecv(int rows, int cols, int blockRows, int blockCols, int *processGrid, int *subRowsPtr, int *subColsPtr) {
     int subMatRows, subMatCols ;
     int procCoords[2] ;
-    MPI_Cart_coords(CART_COMM, procRank, 2, procCoords) ;
+    MPI_Cart_coords(CART_COMM, processInfo.myRank, 2, procCoords) ;
 
     computeSubMatrixDimsPerProc(procCoords[0], procCoords[1], processGrid, rows, cols, blockRows, blockCols, &subMatRows, &subMatCols) ;
     double **subMat = allocMatrix(subMatRows, subMatCols) ;
@@ -287,8 +287,10 @@ double **matrixRecv(int rows, int cols, int blockRows, int blockCols, int *proce
     
     Content content ;
     content.matrix = subMat ;
-    printMessage("SUB MATRIX: ", content, MATRIX, procRank, 0, subMatRows, subMatCols, 1) ;
+    //printMessage("SUB MATRIX: ", content, MATRIX, processInfo.myRank, 0, subMatRows, subMatCols, 1) ;
 
+    *subRowsPtr = subMatRows ;
+    *subColsPtr = subMatCols ;
     return subMat ;
 }
 
@@ -303,7 +305,11 @@ void matrixSend(double **matrix, int rows, int cols, int blockRows, int blockCol
             MPI_Cart_rank(CART_COMM, coords, &proc) ;
 
             MPI_Datatype sendType = computeSendTypeForProc(procRow, procCol, processGrid, rows, cols, blockRows, blockCols, matrixTypes) ;
-            MPI_Send(&(matrix[procRow * blockRows][procCol * blockCols]), 1, sendType, proc, SEND_TAG, WORLD_COMM) ;
+            MPI_Request mpiRequest ;
+
+            // Bisogna fare ISend per l'invio da zero a se stesso, altrimenti ho un blocco
+            // TODO > Controlla se va bene oppure se è meglio usare la SendRecv invece
+            MPI_Isend(&(matrix[procRow * blockRows][procCol * blockCols]), 1, sendType, proc, SEND_TAG, WORLD_COMM, &mpiRequest) ;
         }
     }
 }
