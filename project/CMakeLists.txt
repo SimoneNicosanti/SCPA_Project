@@ -13,13 +13,20 @@ add_library(Matrix
 )
 target_include_directories(Matrix PUBLIC code/Matrix)
 
-## Target for Test utility
-add_library(Test
-    code/Test/Test.h
-    code/Test/Test.c
-    code/Test/TestResultWriter.c
+## Targer for Sequential utility
+add_library(Sequential
+    code/Sequential/Sequential.h
+    code/Sequential/Sequential.c
 )
-target_include_directories(Test PUBLIC code/Test)
+target_include_directories(Sequential PUBLIC code/Sequential)
+
+## Target for Test utility
+# add_library(Test
+#     code/Test/Test.h
+#     code/Test/Test.c
+#     code/Test/TestResultWriter.c
+# )
+# target_include_directories(Test PUBLIC code/Test)
 
 
 ## MPI
@@ -37,7 +44,7 @@ add_executable(mpiExecutable.out
 )
 target_link_libraries(mpiExecutable.out 
     PRIVATE Matrix
-    PRIVATE Test
+    PRIVATE Sequential
     PRIVATE ${MPI_CXX_LIBRARIES}
 )
 

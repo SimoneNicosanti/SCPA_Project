@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include "Matrix.h"
 
 
@@ -53,12 +54,32 @@ float **allocRandomMatrix(int rowsNum, int colsNum) {
     return matrix ;
 }
 
-// // Prints a matrix
-// void printMatrix(float **matrix, int rowsNum, int colsNum) {
-//     for (int i = 0 ; i < rowsNum ; i++) {
-//         for (int j = 0 ; j < colsNum ; j++) {
-//             printf("%f ", matrix[i][j]) ;
-//         }
-//         printf("\n") ;
-//     }
-// }
+float computeRelativeError(float **A, float **B, int m, int n) {
+    double normNum = 0 ;
+    double normDen = 0 ;
+
+    for (int i = 0 ; i < m ; i++) {
+        double rowNorm = 0 ;
+        for (int j = 0 ; j < n ; j++) {
+            rowNorm += abs(A[i][j] - B[i][j]) ;
+        }
+
+        if (normNum < rowNorm) {
+            normNum = rowNorm ;
+        }
+    }
+
+    for (int i = 0 ; i < m ; i++) {
+        double rowNorm = 0 ;
+        for (int j = 0 ; j < n ; j++) {
+            rowNorm += abs(A[i][j]) ;
+        }
+
+        if (normDen < rowNorm) {
+            normDen = rowNorm ;
+        }
+    }
+
+    return normNum / normDen ;
+
+}

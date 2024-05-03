@@ -6,8 +6,9 @@
 #include <math.h>
 
 #include "MpiProduct.h"
-#include "../Matrix/Matrix.h"
+#include "Matrix.h"
 #include "Utils.h"
+#include "Sequential.h"
 
 #define PROCESS_GRID_DIMS 2
 #define TYPE_MATRIX_NUM MPI_FLOAT
@@ -26,7 +27,7 @@ typedef struct ProcessInfo {
 ProcessInfo processInfo ;
 int PROCESS_GRID[PROCESS_GRID_DIMS] = {0} ;
 
-int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *mbPtr, int *kbPtr, int *nbPtr) ;
+int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *mbPtr, int *kbPtr, int *nbPtr, int *testSeqPtr) ;
 void createSendDataTypes(int rowsNum, int colsNum, int blockRows, int blockCols, int *processGrid, MPI_Datatype typesMatrix[3][3]) ;
 
 MPI_Datatype computeSendTypeForProc(
@@ -69,7 +70,8 @@ int main(int argc, char *argv[]) {
     int mb = 0 ;
     int kb = 0 ;
     int nb = 0 ;
-    int succ = extractParams(argc, argv, &m, &k, &n, &mb, &kb, &nb) ;
+    int testSeq = 0 ;
+    int succ = extractParams(argc, argv, &m, &k, &n, &mb, &kb, &nb, &testSeq) ;
     if (!succ) {
         //ERRORE
     }
@@ -80,6 +82,17 @@ int main(int argc, char *argv[]) {
     int procNum ;
     MPI_Comm_rank(WORLD_COMM, &processInfo.myRank);
     MPI_Comm_size(WORLD_COMM, &procNum);
+
+    float **A, **B, **C, **cCopy ;
+    if (processInfo.myRank == ROOT_PROCESS) {
+        A = allocRandomMatrix(m, k) ;
+        B = allocRandomMatrix(k, n) ;
+        C = allocRandomMatrix(m, n) ;
+        cCopy = allocMatrix(m, n) ;
+
+        memcpy(&(cCopy[0][0]), &(C[0][0]), sizeof(float) * m * n) ;
+    }
+
 
     double startTime, endTime ;
     if (processInfo.myRank == ROOT_PROCESS) {
@@ -95,6 +108,8 @@ int main(int argc, char *argv[]) {
     MPI_Cart_create(WORLD_COMM, 2, PROCESS_GRID, periods, 0, &CART_COMM) ;
     MPI_Cart_coords(CART_COMM, processInfo.myRank, 2, &processInfo.myCoords) ;
 
+    createReduceCommunicator() ;
+
     int invertedGrid[2] ;
     invertedGrid[0] = PROCESS_GRID[1] ;
     invertedGrid[1] = PROCESS_GRID[0] ;
@@ -102,42 +117,10 @@ int main(int argc, char *argv[]) {
     int scatterCGrid[2] ;
     scatterCGrid[0] = PROCESS_GRID[0] ;
     scatterCGrid[1] = 1 ;
-    float **C ;
     if (processInfo.myRank == ROOT_PROCESS) {
-        float **A = allocRandomMatrix(m, k) ;
-        // for (int i = 0 ; i < m ; i++) {
-        //     for (int j = 0 ; j < k ; j++) {
-        //         A[i][j] = i * k + j ;
-        //     }
-        // }
-
-        float **B = allocRandomMatrix(k, n) ;
-        // for (int i = 0 ; i < k ; i++) {
-        //     for (int j = 0 ; j < n ; j++) {
-        //         B[i][j] = i * n + j ;
-        //     }
-        // }
-
-        C = allocRandomMatrix(m, n) ;
-        // for (int i = 0 ; i < m ; i++) {
-        //     for (int j = 0 ; j < n ; j++) {
-        //         C[i][j] = i * n + j ;
-        //     }
-        // }
-
         matrixSendToAll(A, m, k, mb, kb, PROCESS_GRID, 0, 0) ; // SEND A
         matrixSendToAll(B, k, n, kb, nb, invertedGrid, 1, 1) ; // SEND B
         matrixSendToAll(C, m, n, mb, nb, scatterCGrid, 0, 1) ; // SEND C
-
-        // SEND C solo ai processi root di una REDUCE
-        // int procCoords[2] ;
-        // for (int j = 0 ; j < PROCESS_GRID[1] ; j++) {
-        //     procCoords[0] = 0 ;
-        //     procCoords[1] = j ;
-        //     int destProc ;
-        //     MPI_Cart_rank(CART_COMM, procCoords, &destProc) ;
-            
-        // }
     }
 
     int subm ;
@@ -162,16 +145,27 @@ int main(int argc, char *argv[]) {
 
     if (processInfo.myRank == ROOT_PROCESS) {
         endTime = MPI_Wtime() ;
-        double totalTime = endTime - startTime ;
-        printf("Total Time: %f\n", totalTime) ;
-        
-        
-        unsigned long num = 2 * m * k * n ;
-        double GFLOPS = (num / totalTime) * pow(10, -9) ;
-        printf("GFLOPS %f\n", GFLOPS ) ;
     }
 
     MPI_Finalize() ;
+
+    if (processInfo.myRank == ROOT_PROCESS) {
+        double sequentialTime = -1 ;
+        double relativeError = -1 ;
+        if (testSeq) {
+            sequentialTime = sequentialMultiplication(A, B, cCopy, m, k, n) ;
+            relativeError = computeRelativeError(cCopy, C, m, n) ;
+        }
+        
+        double parallelTime = endTime - startTime ;
+        unsigned long num = 2 * m * k * n ;
+        double GFLOPS = (num / parallelTime) * pow(10, -9) ;
+
+        printf("SequentialTime > %f\n", sequentialTime) ;
+        printf("ParallelTime > %f\n", parallelTime) ;
+        printf("GFLOPS > %f\n", GFLOPS ) ;
+        printf("RelativeError > %f\n", relativeError) ;
+    }
     
 
     return 0 ;
@@ -179,13 +173,12 @@ int main(int argc, char *argv[]) {
 
 // Executes C <- A * B sui sottoblocchi
 // TODO > Capire se va bene usare delle variabili globali per il rank e per il process grid
+// TODO > Modificare invio: invio tutti i pezzi che servono al singolo processo; in questo modo può cominciare a lavorare
 // TODO > Fare deallocazione dei tipi usati per inviare i dati
-// TODO > Fare presa dei tempi
-// TODO > Fare calcolo dell'errore relativo
 // TODO > Fare Refactoring del codice
 //          - Spostare qualcosa in altri file??
-//          - Capire perché MPI_IN_PLACE non
-// TODO > Change double to float
+//          - Capire perché MPI_IN_PLACE non funge
+// TODO > Script di testing 
 void executeCompleteProduct(
     float **subA, float **subB, float **subC,
     int m, int k, int n,
@@ -195,8 +188,6 @@ void executeCompleteProduct(
 ) {
 
     Content content ;
-
-    createReduceCommunicator() ;
     
     subMatrixProduct(subA, subB, subC, subm, subk, subn) ;
 
@@ -482,7 +473,7 @@ void computeSubMatrixDimsPerProc(
 }
 
 
-int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *mbPtr, int *kbPtr, int *nbPtr) {
+int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *mbPtr, int *kbPtr, int *nbPtr, int *testSeqPtr) {
     
     // if (argc < 6) {
     //     return 0 ;
@@ -503,6 +494,10 @@ int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *
         }
         if (strcmp(argv[i], "-kb") == 0) {
             *kbPtr = atoi(argv[i+1]) ;
+        }
+        if (strcmp(argv[i], "-seq") == 0) {
+            *testSeqPtr = atoi(argv[i+1]) ;
+            printf("CIAO\n") ;
         }
         // if (strcmp(argv[i], "-nb") == 0) {
         //     *nbPtr = atoi(argv[i+1]) ;
