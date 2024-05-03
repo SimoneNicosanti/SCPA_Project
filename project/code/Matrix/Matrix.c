@@ -6,9 +6,9 @@
 #define RAND_LOWER_BOUND -100
 #define RAND_UPPER_BOUND 100
 
-double generateRandomNumber(int min, int max) {
+float generateRandomNumber(int min, int max) {
 
-    double scaled = (double)rand() / RAND_MAX ;
+    float scaled = (float)rand() / RAND_MAX ;
     return min + scaled * (max - min);
 }
 
@@ -17,13 +17,13 @@ double generateRandomNumber(int min, int max) {
     an array pointing to the beginning of each row.
     The matrix is initialized to zero
 */
-double **allocMatrix(int rowsNum, int colsNum) {
-    double *matrixData = calloc(rowsNum * colsNum, sizeof(double));
+float **allocMatrix(int rowsNum, int colsNum) {
+    float *matrixData = calloc(rowsNum * colsNum, sizeof(float));
     if (matrixData == NULL) {
         return NULL ;
     }
 
-    double **matrix = malloc(rowsNum * sizeof(double *));
+    float **matrix = malloc(rowsNum * sizeof(float *));
     if (matrix == NULL) {
         return NULL ;
     }
@@ -38,8 +38,8 @@ double **allocMatrix(int rowsNum, int colsNum) {
 /*
     Allocs a random matrix
 */
-double **allocRandomMatrix(int rowsNum, int colsNum) {
-    double **matrix = allocMatrix(rowsNum, colsNum) ;
+float **allocRandomMatrix(int rowsNum, int colsNum) {
+    float **matrix = allocMatrix(rowsNum, colsNum) ;
     if (matrix == NULL) {
         return NULL ;
     }
@@ -54,7 +54,7 @@ double **allocRandomMatrix(int rowsNum, int colsNum) {
 }
 
 // // Prints a matrix
-// void printMatrix(double **matrix, int rowsNum, int colsNum) {
+// void printMatrix(float **matrix, int rowsNum, int colsNum) {
 //     for (int i = 0 ; i < rowsNum ; i++) {
 //         for (int j = 0 ; j < colsNum ; j++) {
 //             printf("%f ", matrix[i][j]) ;

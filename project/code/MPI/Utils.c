@@ -36,7 +36,7 @@ void printMessage(char *header, Content content, MESSAGE_TYPE type, int rank, in
         break ;
 
     case REAL :
-        printf("%s: %d", header, content.real) ;
+        printf("%s: %f", header, content.real) ;
         break ;
     }
 
@@ -53,7 +53,7 @@ void printIntegerArray(int *array, int dim) {
     printf("]\n") ;
 }
 
-void printRealArray(double *array, int dim) {
+void printRealArray(float *array, int dim) {
     printf("[") ;
     for (int i = 0 ; i < dim ; i++) {
         printf((i == dim - 1) ? "%f" : "%f ", array[i]) ;
@@ -61,7 +61,7 @@ void printRealArray(double *array, int dim) {
     printf("]\n") ;
 }
 
-void printMatrix(double **matrix, int firstDimLen, int secDimLen) {
+void printMatrix(float **matrix, int firstDimLen, int secDimLen) {
     for (int i = 0 ; i < firstDimLen ; i++) {
         printRealArray(matrix[i], secDimLen) ;
     }

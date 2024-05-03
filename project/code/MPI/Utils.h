@@ -10,11 +10,11 @@ typedef enum MESSAGE_TYPE {
 typedef union Content
 {
     char *string ;
-    double *realArray ;
+    float *realArray ;
     int *intArray ;
-    double **matrix ;
+    float **matrix ;
     int integer ;
-    double real ;
+    float real ;
 } Content ;
 
 void printMessage(char *header, Content content, MESSAGE_TYPE type, int rank, int printerProcRank, int firstDimLen, int secDimLen, int newLine) ;

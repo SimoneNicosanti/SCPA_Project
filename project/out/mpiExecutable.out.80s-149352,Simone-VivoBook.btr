@@ -1,8 +1,0 @@
-
-mpiExecutable.out:149352 terminated with signal 11 at PC=7f17894bdf0d SP=7ffe31e0f890.  Backtrace:
-/lib/x86_64-linux-gnu/libmpich.so.12(MPI_Type_create_hindexed_block+0x1bd)[0x7f17894bdf0d]
-./mpiExecutable.out(createSendDataTypes+0x616)[0x5cbd3ccc2a7d]
-./mpiExecutable.out(main+0x14e)[0x5cbd3ccc2437]
-/lib/x86_64-linux-gnu/libc.so.6(+0x29d90)[0x7f1789029d90]
-/lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x80)[0x7f1789029e40]
-./mpiExecutable.out(_start+0x25)[0x5cbd3ccc2225]
