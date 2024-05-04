@@ -1,15 +1,17 @@
 #pragma once
-#include "../Matrix/Matrix.h"
 
-typedef struct TestStruct {
+typedef struct TestResult {
     int m ;
     int n ;
     int k ;
 
-    int parallelUnitNum ;
+    int processNum ;
     double parallelTime ;
 
-    double nonParallelTime ;
+    double sequentialTime ;
 
-    double error ;
-} TestStruct ;
+    double relativeError ;
+    double gFLOPS ;
+} TestResult ;
+
+void writeTestResult(char *fileName, TestResult *testResult) ;

@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "/usr/include/x86_64-linux-gnu/mpich",
-                "${workspaceFolder}/project/code/Sequential"
+                "${workspaceFolder}/project/code/Sequential",
+                "${workspaceFolder}/project/code/Matrix"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

@@ -1,32 +1,22 @@
 #include <stdio.h>
+#include <unistd.h>
 #include "Test.h"
 
 
-void buildTestResult(TestStruct *testResult, int parallelUnitNum, double testValue, int m, int n, int k, double error) {
-    testResult->parallelUnitNum = parallelUnitNum ;
-    testResult->parallelTime = testValue ;
-    testResult->m = m ;
-    testResult->n = n ;
-    testResult->k = k ;
-    testResult->error = error ;
-}
-
-
-void writeTestResult(char *fileName, TestStruct *testResult) {
-    FILE *fileDesc ;
-    fileDesc = fopen(fileName, "r") ;
-    if (fileDesc == NULL) {
-        // File non esiste
+void writeTestResult(char *fileName, TestResult *testResult) {
+    int fileAccess = access(fileName, F_OK) ;
+    if (fileAccess == -1) {
+        // File non esiste -> Create it
         prepareResultFile(fileName) ;
-    } else {
-        fclose(fileDesc) ;
     }
-
-    fileDesc = fopen(fileName, "a+") ;
-    if (fileDesc == NULL) {
-        //TODO Error in printing result
-    }
-    fprintf(fileDesc, "%d;%f;%f;%d;%d;%d\n", testResult->parallelUnitNum, testResult->parallelTime, testResult->error, testResult->m, testResult->n, testResult->k) ;
+    
+    FILE *fileDesc = fopen(fileName, "a+") ;
+    fprintf(fileDesc, "%d,%d,%d,%d,%f,%f,%f,%f\n",
+        testResult->m, testResult->n, testResult->k,
+        testResult->processNum, testResult->parallelTime, testResult->gFLOPS,
+        testResult->sequentialTime,
+        testResult->relativeError
+    ) ;
     fclose(fileDesc) ;
 }
 
@@ -36,6 +26,6 @@ void prepareResultFile(char *fileName) {
     if (fileDesc == NULL) {
         //TODO Error in creating file result
     }
-    fprintf(fileDesc, "%s;%s;%s;%s;%s;%s\n", "ParallelUnitNum", "Time", "Error", "m", "n", "k") ;
+    fprintf(fileDesc, "%s,%s,%s,%s,%s,%s,%s,%s\n", "M", "N", "K", "ProcessNum", "ParallelTime", "GFLOPS", "SequentialTime", "RelativeError") ;
     fclose(fileDesc) ;
 }

@@ -61,7 +61,7 @@ float computeRelativeError(float **A, float **B, int m, int n) {
     for (int i = 0 ; i < m ; i++) {
         double rowNorm = 0 ;
         for (int j = 0 ; j < n ; j++) {
-            rowNorm += abs(A[i][j] - B[i][j]) ;
+            rowNorm += abs(B[i][j] - A[i][j]) ;
         }
 
         if (normNum < rowNorm) {
