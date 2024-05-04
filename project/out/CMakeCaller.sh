@@ -1,3 +1,3 @@
-rm mpiExecutable.out*
+rm *.out*
 cd ..
 ./CMakeCaller.sh

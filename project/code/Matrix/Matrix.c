@@ -54,6 +54,11 @@ float **allocRandomMatrix(int rowsNum, int colsNum) {
     return matrix ;
 }
 
+void freeMatrix(float **matrix) {
+    free(&(matrix[0][0])) ;
+    free(matrix) ;
+}
+
 float computeRelativeError(float **A, float **B, int m, int n) {
     double normNum = 0 ;
     double normDen = 0 ;

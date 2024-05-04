@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
-#include "Test.h"
+#include "ResultWriter.h"
 
 
 void writeTestResult(char *fileName, TestResult *testResult) {
@@ -19,7 +19,6 @@ void writeTestResult(char *fileName, TestResult *testResult) {
     ) ;
     fclose(fileDesc) ;
 }
-
 
 void prepareResultFile(char *fileName) {
     FILE *fileDesc = fopen(fileName, "w+") ;

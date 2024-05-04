@@ -1,6 +1,9 @@
 #include <stdio.h>
-#include "Utils.h"
+#include "PrintUtils.h"
 
+void printMatrix(float **matrix, int firstDimLen, int secDimLen) ;
+void printRealArray(float *array, int dim) ;
+void printIntegerArray(int *array, int dim) ;
 
 
 void printMessage(char *header, Content content, MESSAGE_TYPE type, int rank, int printerProcRank, int firstDimLen, int secDimLen, int newLine) {

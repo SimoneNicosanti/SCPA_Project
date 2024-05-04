@@ -1,5 +1,3 @@
-#pragma once
-
 typedef struct TestResult {
     int m ;
     int n ;
