@@ -41,6 +41,7 @@ void matrixSendToAll(float **matrix, int rows, int cols, int blockRows, int bloc
 float **matrixRecvFromRoot(int rows, int cols, int blockRows, int blockCols, int *processGrid, int *subRowsPtr, int *subColsPtr, int invertGrid, int perGroupOfRows) ;
 
 void createReduceCommunicator() ;
+void freeReduceCommunicator() ;
 void subMatrixProduct(float **subA, float **subB, float **cSubProd, int subm, int subk, int subn) ;
 
 
@@ -57,9 +58,9 @@ void MpiProduct(float **A, float **B, float **C, int m, int k, int n) {
 
     //int PROCESS_GRID[PROCESS_GRID_DIMS] = {0} ;
     MPI_Dims_create(procNum, PROCESS_GRID_DIMS, PROCESS_GRID) ;
-    if (processInfo.myRank == ROOT_PROCESS) {
-        printf("Cartesian Grid: [%d, %d]\n", PROCESS_GRID[0], PROCESS_GRID[1]) ;
-    }
+    // if (processInfo.myRank == ROOT_PROCESS) {
+    //     printf("Cartesian Grid: [%d, %d]\n", PROCESS_GRID[0], PROCESS_GRID[1]) ;
+    // }
     int periods[2] = {0, 0} ;
     MPI_Cart_create(WORLD_COMM, 2, PROCESS_GRID, periods, 0, &CART_COMM) ;
     MPI_Cart_coords(CART_COMM, processInfo.myRank, 2, &processInfo.myCoords) ;
@@ -84,7 +85,7 @@ void MpiProduct(float **A, float **B, float **C, int m, int k, int n) {
     int subn ;
     float **subA = matrixRecvFromRoot(m, k, mb, kb, PROCESS_GRID, &subm, &subk, 0, 0) ;
     float **subB =  matrixRecvFromRoot(k, n, kb, nb, invertedGrid, &subk, &subn, 1, 1) ;
-    float **subC = NULL ;
+    float **subC ;
     if (processInfo.myCoords[1] == 0) {
         subC = matrixRecvFromRoot(m, n, mb, nb, scatterCGrid, &subm, &subn, 0, 1) ;
     } else {
@@ -98,6 +99,11 @@ void MpiProduct(float **A, float **B, float **C, int m, int k, int n) {
         content.matrix = C ;
         //printMessage("FINAL MATRIX", content, MATRIX, processInfo.myRank, ROOT_PROCESS, m, n, 1) ;
     }
+
+    MPI_Comm_free(&WORLD_COMM) ;
+    MPI_Comm_free(&CART_COMM) ;
+
+    //freeReduceCommunicator() ;
 
     // TODO AGGIUNGERE LE FREE MA NON FUNZIONANO, DANNO ERRORE NON SO PERCHè
     // freeMatrix(subA) ;
@@ -127,16 +133,17 @@ void executeCompleteProduct(
     
     subMatrixProduct(subA, subB, subC, subm, subk, subn) ;
 
-    printf("Process %d; Finished Product\n", processInfo.myRank) ;
+    //printf("Process %d; Finished Product\n", processInfo.myRank) ;
 
     float **reducedC ;
     if (processInfo.myCoords[1] == 0) {
         reducedC = allocMatrix(subm, subn) ;
     }
     
+    
     MPI_Reduce(&(subC[0][0]), &(reducedC[0][0]), subm * subn, TYPE_MATRIX_NUM, MPI_SUM, 0, REDUCE_COMM_ARRAY[processInfo.myCoords[0]]) ;
 
-    printf("REDUCED DONE\n") ;
+    //printf("REDUCED DONE\n") ;
 
     // IS ONE OF THE REDUCE ROOT
     if (processInfo.myCoords[1] == 0 && processInfo.myRank != ROOT_PROCESS) {
@@ -171,8 +178,22 @@ void executeCompleteProduct(
                     CART_COMM, MPI_STATUS_IGNORE) ;
             }
         }
+
+        freeSendDataTypes(returnTypes) ;
+    }
+
+    // TODO ANCHE QUESTA FREE FA ERRORE
+    if (processInfo.myCoords[1] == 0) {
+        //freeMatrix(reducedC) ;
     }
     
+}
+
+void freeReduceCommunicator() {
+    for (int i = 0 ; i < PROCESS_GRID[0]; i++) {
+        MPI_Comm_free(&REDUCE_COMM_ARRAY[i]) ;
+    }
+    free(REDUCE_COMM_ARRAY) ;
 }
 
 void createReduceCommunicator() {
@@ -242,8 +263,18 @@ float **matrixRecvFromRoot(int rows, int cols, int blockRows, int blockCols, int
     return subMat ;
 }
 
+void sendToProcess(int destProc, float **A, float **B, float **C, int m, int k, int n, int mb, int kb, int nb) {
+    
+}
 
-void matrixSendToAll(float **matrix, int rows, int cols, int blockRows, int blockCols, int *processGrid, int invertGrid, int perGroupOfRows) {
+
+void matrixSendToAll(
+    float **matrix, 
+    int rows, int cols, 
+    int blockRows, int blockCols, 
+    int *processGrid, 
+    int invertGrid, int perGroupOfRows
+) {
     MPI_Datatype matrixTypes[3][3] ;
     createSendDataTypes(rows, cols, blockRows, blockCols, processGrid, TYPE_MATRIX_NUM, matrixTypes) ;
 
@@ -270,7 +301,10 @@ void matrixSendToAll(float **matrix, int rows, int cols, int blockRows, int bloc
             // Bisogna fare ISend per l'invio da zero a se stesso, altrimenti ho un blocco
             // TODO > Controlla se va bene oppure se è meglio usare la SendRecv invece
             MPI_Isend(&(matrix[rowIndex * blockRows][colIndex * blockCols]), 1, sendType, proc, SEND_TAG, WORLD_COMM, &mpiRequest) ;
+            //MPI_Request_free(&mpiRequest) ;
         }
     }
+
+    freeSendDataTypes(matrixTypes) ;
 }
 

@@ -64,24 +64,18 @@ float computeRelativeError(float **A, float **B, int m, int n) {
     double normDen = 0 ;
 
     for (int i = 0 ; i < m ; i++) {
-        double rowNorm = 0 ;
+        double rowNormNum = 0 ;
+        double rowNormDen = 0 ;
         for (int j = 0 ; j < n ; j++) {
-            rowNorm += abs(B[i][j] - A[i][j]) ;
+            rowNormNum += abs(B[i][j] - A[i][j]) ;
+            rowNormDen += abs(A[i][j]) ;
         }
 
-        if (normNum < rowNorm) {
-            normNum = rowNorm ;
+        if (normNum < rowNormNum) {
+            normNum = rowNormNum ;
         }
-    }
-
-    for (int i = 0 ; i < m ; i++) {
-        double rowNorm = 0 ;
-        for (int j = 0 ; j < n ; j++) {
-            rowNorm += abs(A[i][j]) ;
-        }
-
-        if (normDen < rowNorm) {
-            normDen = rowNorm ;
+        if (normDen < rowNormDen) {
+            normDen = rowNormDen ;
         }
     }
 

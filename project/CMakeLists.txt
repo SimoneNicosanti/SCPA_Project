@@ -59,6 +59,20 @@ target_link_libraries(MpiTest.out
     PRIVATE ${MPI_CXX_LIBRARIES}
 )
 
+find_package(MPI REQUIRED)
+include_directories(${MPI_INCLUDE_PATH})
+add_executable(MpiSingleTest.out 
+    code/Test/MpiSingleTest.c
+)
+target_link_libraries(MpiSingleTest.out 
+    PRIVATE Matrix
+    PRIVATE MpiProduct
+    PRIVATE Sequential
+    PRIVATE Test
+    PRIVATE Utils
+    PRIVATE ${MPI_CXX_LIBRARIES}
+)
+
 # ## OpenMp
 # add_executable(openMpExecutable code/OpenMP/main.c)
 # target_link_libraries(openMpExecutable 
@@ -75,5 +89,9 @@ target_link_libraries(MpiTest.out
 
 # Specify the output directory for the executable
 set_target_properties(MpiTest.out  PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CUSTOM_BUILD_DIR}
+)
+
+set_target_properties(MpiSingleTest.out  PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CUSTOM_BUILD_DIR}
 )

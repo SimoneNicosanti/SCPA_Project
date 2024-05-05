@@ -20,3 +20,5 @@ void computeSubMatrixDimsPerProc(
     int blockRows, int blockCols, 
     int *subMatRowsNum, int *subMatColsNum
 ) ;
+
+void freeSendDataTypes(MPI_Datatype typesMatrix[3][3]) ;

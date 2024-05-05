@@ -31,7 +31,11 @@ void main(int argc, char *argv[]) {
     float relativeError ;
     TestResult testResult ;
     testResult.processNum = procNum ;
-    for (int probDim = START_PROB_DIM ; probDim < MAX_PROB_DIM ; probDim += 100) {
+    for (int probDim = START_PROB_DIM ; probDim < MAX_PROB_DIM ; probDim += 500) {
+
+        if (myRank == 0) {
+            printf("TEST CON (%d, %d, %d)\n", probDim, probDim, probDim) ;
+        }
         testResult.m = probDim ;
         testResult.k = probDim ;
         testResult.n = probDim ;
@@ -54,7 +58,7 @@ void main(int argc, char *argv[]) {
             testResult.parallelTime = doParTest(A, B, parC, probDim, probDim, probDim) ;
 
             // ONLY 0 does the parallel product
-            if (myRank == 0 && probDim < MAX_SEQ_DIM) {
+            if (myRank == 0 && probDim < 0) {
                 testResult.sequentialTime = doSeqTest(A, B, seqC, probDim, probDim, probDim) ;
                 testResult.relativeError = computeRelativeError(seqC, parC, probDim, probDim) ;
             } else {

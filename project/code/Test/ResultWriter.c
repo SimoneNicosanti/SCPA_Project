@@ -11,9 +11,9 @@ void writeTestResult(char *fileName, TestResult *testResult) {
     }
     
     FILE *fileDesc = fopen(fileName, "a+") ;
-    fprintf(fileDesc, "%d,%d,%d,%d,%f,%f,%f,%f\n",
+    fprintf(fileDesc, "%d,%d,%d,%d,%f,%f,%f\n",
         testResult->m, testResult->n, testResult->k,
-        testResult->processNum, testResult->parallelTime, testResult->gFLOPS,
+        testResult->processNum, testResult->parallelTime,
         testResult->sequentialTime,
         testResult->relativeError
     ) ;
@@ -25,6 +25,6 @@ void prepareResultFile(char *fileName) {
     if (fileDesc == NULL) {
         //TODO Error in creating file result
     }
-    fprintf(fileDesc, "%s,%s,%s,%s,%s,%s,%s,%s\n", "M", "N", "K", "ProcessNum", "ParallelTime", "GFLOPS", "SequentialTime", "RelativeError") ;
+    fprintf(fileDesc, "%s,%s,%s,%s,%s,%s,%s\n", "M", "N", "K", "ProcessNum", "ParallelTime", "SequentialTime", "RelativeError") ;
     fclose(fileDesc) ;
 }

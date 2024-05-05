@@ -1,1 +1,1 @@
-rsync -r snicosanti@160.80.85.52:/home/snicosanti/project/TestResults ./project
+rsync -r --update snicosanti@160.80.85.52:/home/snicosanti/project/Results ./project

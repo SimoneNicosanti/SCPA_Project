@@ -1,6 +1,13 @@
 {
     "files.associations": {
         "stdio.h": "c",
-        "sequential.h": "c"
+        "sequential.h": "c",
+        "array": "c",
+        "deque": "c",
+        "string": "c",
+        "unordered_map": "c",
+        "vector": "c",
+        "string_view": "c",
+        "initializer_list": "c"
     },
 }
