@@ -47,10 +47,13 @@ void main(int argc, char *argv[]) {
         memcpy(&(seqC[0][0]), &(C[0][0]), sizeof(float) * m * n) ;
     }
 
-    doParTest(A, B, parC, m, k, n) ;
+    double testTime = doParTest(A, B, parC, m, k, n) ;
+    if (myRank == 0) {
+        printf("TestTime > %f\n", testTime) ;
+    }
 
     // ONLY 0 does the parallel product
-    if (myRank == 0) {
+    if (myRank == 0 && m < 0) {
         doSeqTest(A, B, seqC, m, k, n) ;
         computeRelativeError(seqC, parC, m, n) ;
     }

@@ -2,6 +2,14 @@
 #include <unistd.h>
 #include "ResultWriter.h"
 
+void prepareResultFile(char *fileName) {
+    FILE *fileDesc = fopen(fileName, "w+") ;
+    if (fileDesc == NULL) {
+        //TODO Error in creating file result
+    }
+    fprintf(fileDesc, "%s,%s,%s,%s,%s,%s,%s\n", "M", "N", "K", "ProcessNum", "ParallelTime", "SequentialTime", "RelativeError") ;
+    fclose(fileDesc) ;
+}
 
 void writeTestResult(char *fileName, TestResult *testResult) {
     int fileAccess = access(fileName, F_OK) ;
@@ -20,11 +28,3 @@ void writeTestResult(char *fileName, TestResult *testResult) {
     fclose(fileDesc) ;
 }
 
-void prepareResultFile(char *fileName) {
-    FILE *fileDesc = fopen(fileName, "w+") ;
-    if (fileDesc == NULL) {
-        //TODO Error in creating file result
-    }
-    fprintf(fileDesc, "%s,%s,%s,%s,%s,%s,%s\n", "M", "N", "K", "ProcessNum", "ParallelTime", "SequentialTime", "RelativeError") ;
-    fclose(fileDesc) ;
-}
