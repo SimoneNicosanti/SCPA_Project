@@ -54,9 +54,11 @@ float **allocRandomMatrix(int rowsNum, int colsNum) {
     return matrix ;
 }
 
-void freeMatrix(float **matrix) {
-    free(&(matrix[0][0])) ;
-    free(matrix) ;
+void freeMatrix(float **matrix, int rows, int cols) {
+    if (rows > 0 && cols > 0) {
+        free(&(matrix[0][0])) ;
+        free(matrix) ;
+    }
 }
 
 float computeRelativeError(float **A, float **B, int m, int n) {

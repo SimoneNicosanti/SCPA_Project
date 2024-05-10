@@ -71,16 +71,16 @@ void main(int argc, char *argv[]) {
                 unsigned long gflopsNum = probDim * probDim * probDim ;
                 testResult.gFLOPS = gflopsNum / testResult.parallelTime ;
 
-                writeTestResult("../Results/MPI_Test.csv", &testResult) ;
+                writeTestResult("../Results/MPI/MPI_Test.csv", &testResult) ;
             }
         }
 
         if (myRank == 0) {
-            freeMatrix(A) ;
-            freeMatrix(B) ;
-            freeMatrix(C) ;
-            freeMatrix(parC) ;
-            freeMatrix(seqC) ;
+            freeMatrix(A, probDim, probDim) ;
+            freeMatrix(B, probDim, probDim) ;
+            freeMatrix(C, probDim, probDim) ;
+            freeMatrix(parC, probDim, probDim) ;
+            freeMatrix(seqC, probDim, probDim) ;
         }
 
     }
@@ -92,7 +92,7 @@ double doParTest(float **A, float **B, float **C, int m, int k, int n) {
     MPI_Barrier(MPI_COMM_WORLD) ;
     double startTime = MPI_Wtime() ;
 
-    MpiProduct(A, B, C, m, k, n) ;
+    MpiProduct(A, B, C, m, k, n, 0, 0) ;
 
     MPI_Barrier(MPI_COMM_WORLD) ;
     double endTime = MPI_Wtime() ;

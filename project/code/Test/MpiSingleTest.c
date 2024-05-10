@@ -14,9 +14,9 @@
 #define MAX_SEQ_DIM 2001
 #define START_PROB_DIM 100
 
-double doParTest(float **A, float **B, float **C, int m, int k, int n) ;
+double doParTest(float **A, float **B, float **C, int m, int k, int n, int blockRows, int blockCols) ;
 double doSeqTest(float **A, float **B, float **C, int m, int k, int n) ;
-int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *mbPtr, int *kbPtr, int *nbPtr) ;
+int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *blockRowsPtr, int *blockColsPtr) ;
 
 
 void main(int argc, char *argv[]) {
@@ -28,16 +28,33 @@ void main(int argc, char *argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &procNum);
 
     float **A, **B, **C, **parC, **seqC ;
-    double seqTime, parTime ;
-    float relativeError ;
+    double seqTime = 0, parTime = 0 ;
+    float relativeError = 0 ;
 
-    int m, k, n, mb, kb, nb ;
-    extractParams(argc, argv, &m, &k, &n, &mb, &kb, &nb) ;
+    int m, k, n, blockRows = 0, blockCols = 0 ;
+    extractParams(argc, argv, &m, &k, &n, &blockRows, &blockCols) ;
 
     if (myRank == 0) {
         A = allocRandomMatrix(m, k) ;
         B = allocRandomMatrix(k, n) ;
         C = allocRandomMatrix(m, n) ;
+
+        for (int i = 0 ; i < m ; i++) {
+            for (int j = 0 ; j < k ; j++) {
+                A[i][j] = i*k + j ;
+            }
+        }
+        for (int i = 0 ; i < k ; i++) {
+            for (int j = 0 ; j < n ; j++) {
+                B[i][j] = i*n + j ;
+            }
+        }
+        for (int i = 0 ; i < m ; i++) {
+            for (int j = 0 ; j < n ; j++) {
+                C[i][j] = i*n + j ;
+            }
+        }
+
         parC = allocMatrix(m, n) ;
         seqC = allocMatrix(m, n) ;
     }
@@ -47,33 +64,35 @@ void main(int argc, char *argv[]) {
         memcpy(&(seqC[0][0]), &(C[0][0]), sizeof(float) * m * n) ;
     }
 
-    double testTime = doParTest(A, B, parC, m, k, n) ;
+    parTime = doParTest(A, B, parC, m, k, n, blockRows, blockCols) ;
     if (myRank == 0) {
-        printf("TestTime > %f\n", testTime) ;
+        printf("PARALLEL TIME > %f\n", parTime) ;
     }
 
     // ONLY 0 does the parallel product
-    if (myRank == 0 && m < 0) {
-        doSeqTest(A, B, seqC, m, k, n) ;
-        computeRelativeError(seqC, parC, m, n) ;
+    if (myRank == 0 && m <= 2000) {
+        seqTime = doSeqTest(A, B, seqC, m, k, n) ;
+        relativeError = computeRelativeError(seqC, parC, m, n) ;
+        printf("SEQUENTIAL TIME > %f\n", seqTime) ;
+        printf("RELATIVE ERROR > %f\n", relativeError) ;
     }
 
     if (myRank == 0) {
-        freeMatrix(A) ;
-        freeMatrix(B) ;
-        freeMatrix(C) ;
-        freeMatrix(parC) ;
-        freeMatrix(seqC) ;
+        freeMatrix(A, m, k) ;
+        freeMatrix(B, k, n) ;
+        freeMatrix(C, m, n) ;
+        freeMatrix(parC, m, n) ;
+        freeMatrix(seqC, m, n) ;
     }
 
     MPI_Finalize() ;
 }
 
-double doParTest(float **A, float **B, float **C, int m, int k, int n) {
+double doParTest(float **A, float **B, float **C, int m, int k, int n, int blockRows, int blockCols) {
     MPI_Barrier(MPI_COMM_WORLD) ;
     double startTime = MPI_Wtime() ;
 
-    MpiProduct(A, B, C, m, k, n) ;
+    MpiProduct(A, B, C, m, k, n, blockRows, blockCols) ;
 
     MPI_Barrier(MPI_COMM_WORLD) ;
     double endTime = MPI_Wtime() ;
@@ -89,7 +108,7 @@ double doSeqTest(float **A, float **B, float **C, int m, int k, int n) {
     return seqEnd - seqStart ;
 }
 
-int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *mbPtr, int *kbPtr, int *nbPtr) {
+int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *blockRowsPtr, int *blockColsPtr) {
     
     // if (argc < 6) {
     //     return 0 ;
@@ -105,18 +124,17 @@ int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *
         if (strcmp(argv[i], "-n") == 0) {
             *nPtr = atoi(argv[i+1]) ;
         }
-        if (strcmp(argv[i], "-mb") == 0) {
-            *mbPtr = atoi(argv[i+1]) ;
+        if (strcmp(argv[i], "-blockRows") == 0) {
+            *blockRowsPtr = atoi(argv[i+1]) ;
         }
-        if (strcmp(argv[i], "-kb") == 0) {
-            *kbPtr = atoi(argv[i+1]) ;
+        if (strcmp(argv[i], "-blockCols") == 0) {
+            *blockColsPtr = atoi(argv[i+1]) ;
         }
         // if (strcmp(argv[i], "-nb") == 0) {
         //     *nbPtr = atoi(argv[i+1]) ;
         // }
     }
-    *nbPtr = *nPtr ;
-    if (*mPtr <= 0 || *kPtr <= 0 || *nPtr <= 0 || *mbPtr <= 0 || *kbPtr <= 0 || *nbPtr <= 0) {
+    if (*mPtr <= 0 || *kPtr <= 0 || *nPtr <= 0 || *blockRowsPtr < 0 || *blockColsPtr < 0) {
         return 0 ;
     }
 
