@@ -1,6 +1,5 @@
 #include <mpi.h>
 
-
 MPI_Datatype computeSendTypeForProc(
     int rowRank, int colRank, int *processGrid,
     int rowsNum, int colsNum, 
@@ -98,7 +97,6 @@ void createSendDataTypes(
 }
 
 void freeSendDataTypes(MPI_Datatype typesMatrix[3][3]) {
-
     for (int i = 0 ; i < 3 ; i++) {
         for (int j = 0 ; j < 3 ; j++) {
             MPI_Type_free(&(typesMatrix[i][j])) ;

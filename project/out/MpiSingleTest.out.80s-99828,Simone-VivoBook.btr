@@ -1,9 +1,0 @@
-
-MpiSingleTest.out:99828 terminated with signal 11 at PC=64c65b262269 SP=7ffc26e264b0.  Backtrace:
-./MpiSingleTest.out(executeCompleteProduct+0xd2)[0x64c65b262269]
-./MpiSingleTest.out(MpiProduct+0x2e8)[0x64c65b262116]
-./MpiSingleTest.out(doParTest+0x5f)[0x64c65b261810]
-./MpiSingleTest.out(main+0x174)[0x64c65b2616dd]
-/lib/x86_64-linux-gnu/libc.so.6(+0x29d90)[0x705e57e29d90]
-/lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x80)[0x705e57e29e40]
-./MpiSingleTest.out(_start+0x25)[0x64c65b2614a5]

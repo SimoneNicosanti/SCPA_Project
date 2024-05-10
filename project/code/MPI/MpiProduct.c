@@ -228,9 +228,8 @@ void createReduceCommunicator() {
 
 void subMatrixProduct(float **subA, float **subB, float **subC, int subm, int subk, int subn) {
     for (int i = 0 ; i < subm ; i++) {
-        for (int j = 0 ; j < subn ; j++) {
-            for (int t = 0 ; t < subk ; t++) {
-                //printf("A , B = %f , %f\n", subA[i][t], subB[j][t]) ;
+        for (int t = 0 ; t < subk ; t++) {
+            for (int j = 0 ; j < subn ; j++) {
                 subC[i][j] += subA[i][t] * subB[t][j] ;
             }
         }
