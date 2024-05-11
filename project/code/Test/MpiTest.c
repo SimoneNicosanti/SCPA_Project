@@ -28,7 +28,7 @@ void main(int argc, char *argv[]) {
 
     float **A, **B, **C, **parC, **seqC ;
     double seqTime, parTime ;
-    float relativeError ;
+    double relativeError ;
     TestResult testResult ;
     testResult.processNum = procNum ;
     for (int probDim = START_PROB_DIM ; probDim < MAX_PROB_DIM ; probDim += 500) {

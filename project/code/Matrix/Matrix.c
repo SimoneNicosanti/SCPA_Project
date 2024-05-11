@@ -61,7 +61,7 @@ void freeMatrix(float **matrix, int rows, int cols) {
     }
 }
 
-float computeRelativeError(float **A, float **B, int m, int n) {
+double computeRelativeError(float **A, float **B, int m, int n) {
     double normNum = 0 ;
     double normDen = 0 ;
 
@@ -69,8 +69,8 @@ float computeRelativeError(float **A, float **B, int m, int n) {
         double rowNormNum = 0 ;
         double rowNormDen = 0 ;
         for (int j = 0 ; j < n ; j++) {
-            rowNormNum += abs(B[i][j] - A[i][j]) ;
-            rowNormDen += abs(A[i][j]) ;
+            rowNormNum += fabs(B[i][j] - A[i][j]) ;
+            rowNormDen += fabs(A[i][j]) ;
         }
 
         if (normNum < rowNormNum) {

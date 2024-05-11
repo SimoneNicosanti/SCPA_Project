@@ -29,7 +29,7 @@ void main(int argc, char *argv[]) {
 
     float **A, **B, **C, **parC, **seqC ;
     double seqTime = 0, parTime = 0 ;
-    float relativeError = 0 ;
+    double relativeError = 0 ;
 
     int m, k, n, blockRows = 0, blockCols = 0 ;
     extractParams(argc, argv, &m, &k, &n, &blockRows, &blockCols) ;
@@ -72,6 +72,8 @@ void main(int argc, char *argv[]) {
     // ONLY 0 does the parallel product
     if (myRank == 0 && m <= 2000) {
         seqTime = doSeqTest(A, B, seqC, m, k, n) ;
+        Content cont ;
+        cont.matrix = seqC ;
         relativeError = computeRelativeError(seqC, parC, m, n) ;
         printf("SEQUENTIAL TIME > %f\n", seqTime) ;
         printf("RELATIVE ERROR > %f\n", relativeError) ;
