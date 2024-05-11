@@ -14,8 +14,8 @@
 #define ROOT_PROCESS 0
 #define SEND_TAG 100
 
-#define ROW_BLOCK_SIZE 100
-#define COL_BLOCK_SIZE 100
+#define ROW_BLOCK_SIZE 52
+#define COL_BLOCK_SIZE 52
 
 MPI_Comm WORLD_COMM ;
 MPI_Comm CART_COMM ;
@@ -82,10 +82,12 @@ void MpiProduct(float **A, float **B, float **C, int m, int k, int n, int blockR
     float **subA, **subB, **subC ;
     int subm, subk, subn ;
     if (processInfo.myRank == ROOT_PROCESS) {
+        float start = MPI_Wtime() ;
         subA = matrixSendToAll(A, m, k, mb, k, PROCESS_GRID, 1, 0, &subm, &subk) ; // SEND A
         subB = matrixSendToAll(B, k, n, k, nb, PROCESS_GRID, 0, 1, &subk, &subn) ; // SEND B
         subC = matrixSendToAll(C, m, n, mb, nb, PROCESS_GRID, 0, 0, &subm, &subn) ; // SEND C
-    
+        float end = MPI_Wtime() ;
+        // printf("Send Time > %f\n", end - start) ;
     } else {
         subA = matrixRecvFromRoot(m, k, mb, k, PROCESS_GRID, 1, 0, &subm, &subk) ;
         subB = matrixRecvFromRoot(k, n, k, nb, PROCESS_GRID, 0, 1, &subk, &subn) ;
@@ -123,6 +125,7 @@ void executeCompleteProduct(
     }
    
     if (processInfo.myRank == ROOT_PROCESS) {
+        float start = MPI_Wtime() ;
         //RECV DEI PEZZI CHE VENGONO MANDATI E INSERIMENTO IN C
         MPI_Datatype returnTypes[3][3] ;
         int gatherGrid[2] = {PROCESS_GRID[0], PROCESS_GRID[1]} ;
@@ -147,18 +150,19 @@ void executeCompleteProduct(
                         &(subC[0][0]), subm * subn, TYPE_MATRIX_NUM, processInfo.myRank, SEND_TAG, 
                         &(C[rowIndex * mb][colIndex * nb]), 1, returnType, proc, SEND_TAG,
                         CART_COMM, MPI_STATUS_IGNORE) ;
-                    printf("Process ROOT > Done SendRecv\n") ;
+                    // printf("Process ROOT > Done SendRecv\n") ;
                 }
             }
         }
-
+        float end = MPI_Wtime() ;
+        // printf("TIME GATHER > %f\n", end - start) ;
         freeSendDataTypes(returnTypes) ;
-        printf("COMPLETED PRODUCT\n") ;
+        // printf("COMPLETED PRODUCT\n") ;
     }
 }
 
 void subMatrixProduct(float **subA, float **subB, float **subC, int subm, int subk, int subn) {
-    printf("DIMENSIONS > %d %d %d\n", subm, subk, subn) ;
+    //printf("DIMENSIONS > %d %d %d\n", subm, subk, subn) ;
     for (int i = 0 ; i < subm ; i++) {
         for (int t = 0 ; t < subk ; t++) {
             for (int j = 0 ; j < subn ; j++) {
@@ -179,17 +183,17 @@ float **matrixRecvFromRoot(
     int subMatRows, subMatCols ;
     int procCoords[2] ;
     MPI_Cart_coords(CART_COMM, processInfo.myRank, 2, procCoords) ;
-    if (processInfo.myRank == 2) {
-        printf("Coords > %d %d\n", procCoords[0], procCoords[1]) ;
-    }
+    // if (processInfo.myRank == 2) {
+    //     printf("Coords > %d %d\n", procCoords[0], procCoords[1]) ;
+    // }
 
     //printf("Process %d > WAITING DATA\n", processInfo.myRank) ;
     int rowIndex = procCoords[0] ;
     int colIndex = procCoords[1] ;
 
-    if (processInfo.myRank == 2) {
-        printf("Indexes > %d %d\n", rowIndex, colIndex) ;
-    }
+    // if (processInfo.myRank == 2) {
+    //     printf("Indexes > %d %d\n", rowIndex, colIndex) ;
+    // }
 
     if (perGroupOfRows) {
         colIndex = 0 ;
@@ -198,9 +202,9 @@ float **matrixRecvFromRoot(
         rowIndex = 0 ;
     }
 
-    if (processInfo.myRank == 2) {
-        printf("Indexes > %d %d\n", rowIndex, colIndex) ;
-    }
+    // if (processInfo.myRank == 2) {
+    //     printf("Indexes > %d %d\n", rowIndex, colIndex) ;
+    // }
     computeSubMatrixDimsPerProc(rowIndex, colIndex, processGrid, rows, cols, blockRows, blockCols, &subMatRows, &subMatCols) ;
     float **subMat = allocMatrix(subMatRows, subMatCols) ;
     MPI_Recv(&(subMat[0][0]), subMatRows * subMatCols, TYPE_MATRIX_NUM, ROOT_PROCESS, SEND_TAG, CART_COMM, MPI_STATUS_IGNORE) ;
@@ -259,7 +263,6 @@ float **matrixSendToAll(
                 MPI_Sendrecv(
                     &(matrix[rowIndex * blockRows][colIndex * blockCols]), 1, sendType, proc, SEND_TAG,
                     &(subMat[0][0]), (*subMatRows) * (*subMatCols), TYPE_MATRIX_NUM, ROOT_PROCESS, SEND_TAG, CART_COMM, MPI_STATUS_IGNORE) ;
-
             }
         }
     }

@@ -15,8 +15,17 @@ def main() :
     comparisonDataSet.to_csv("../MPI/MPI_Comparisons.csv", index = False)
     gflopsDataSet.to_csv("../MPI/MPI_GFLOPS.csv", index = False)
 
-    plt.plot(avgDataSet["K"], avgDataSet["ParallelTime"])
-    plt.show()
+    plt.figure(figsize = (15, 5), clear = True, layout = "tight")
+    for procNum in gflopsDataSet["ProcessNum"].unique() :
+        subDataSet = gflopsDataSet[gflopsDataSet["ProcessNum"] == procNum]
+        plt.plot(subDataSet["K"], subDataSet["GFLOPS"], marker = "o", label = f"Process Num = {procNum}")
+    plt.legend()
+    plt.xlabel("K")
+    plt.ylabel("GFLOPS")
+    plt.title("GFLOPS Trend")
+    plt.savefig("../MPI/Charts/GFLOPS_Chart.png")
+    plt.clf()
+
     return 
 
 
