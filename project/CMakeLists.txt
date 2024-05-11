@@ -40,9 +40,16 @@ target_link_libraries(MpiProduct
 target_include_directories(MpiProduct PUBLIC code/MPI)
 
 ## Target for OpenMP utility
+find_package(OpenMP REQUIRED)
 add_library(OpenMp
     code/OpenMp/OpenMpProduct.c
     code/OpenMp/OpenMpProduct.h
+)
+target_link_libraries(OpenMp
+    PRIVATE OpenMP::OpenMP_CXX
+)
+target_compile_options(OpenMp  
+    PRIVATE -fopenmp
 )
 target_include_directories(OpenMp PUBLIC code/OpenMp)
 
@@ -57,7 +64,7 @@ target_link_libraries(OpenMpiProduct
     PRIVATE OpenMp
 )
 target_compile_options(OpenMpiProduct 
-    PRIVATE -dOPEN_MP
+    PRIVATE -DOPEN_MP
 )
 target_include_directories(OpenMpiProduct PUBLIC code/MPI)
 
@@ -99,12 +106,20 @@ target_link_libraries(MpiSingleTest.out
     PRIVATE ${MPI_CXX_LIBRARIES}
 )
 
-# ## OpenMp
-# add_executable(openMpExecutable code/OpenMP/main.c)
-# target_link_libraries(openMpExecutable 
-#     PRIVATE Matrix
-#     PRIVATE Test
-# )
+add_executable(OpenMpiSingleTest.out 
+    code/Test/MpiSingleTest.c
+)
+target_link_libraries(OpenMpiSingleTest.out 
+    PRIVATE Matrix
+    PRIVATE OpenMpiProduct
+    PRIVATE Sequential
+    PRIVATE Test
+    PRIVATE Utils
+    PRIVATE ${MPI_CXX_LIBRARIES}
+)
+target_compile_options(OpenMpiSingleTest.out  
+PRIVATE -fopenmp
+)
 
 # ## CUDA
 # add_executable(cudaExecutable code/CUDA/main.c)
@@ -119,5 +134,9 @@ set_target_properties(MpiTest.out  PROPERTIES
 )
 
 set_target_properties(MpiSingleTest.out  PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CUSTOM_BUILD_DIR}
+)
+
+set_target_properties(OpenMpiSingleTest.out  PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CUSTOM_BUILD_DIR}
 )
