@@ -9,6 +9,9 @@
 #include "SendRecvUtils.h"
 #include "../Utils/PrintUtils.h"
 
+#include "../Sequential/Sequential.h"
+#include "../OpenMp/OpenMpProduct.h"
+
 #define PROCESS_GRID_DIMS 2
 #define TYPE_MATRIX_NUM MPI_FLOAT
 #define ROOT_PROCESS 0
@@ -57,7 +60,6 @@ void gatherFinalMatrix(
     int subm, int subn,
     float **C
 ) ;
-void subMatrixProduct(float **subA, float **subB, float **cSubProd, int subm, int subk, int subn) ;
 
 
 void MpiProduct(float **A, float **B, float **C, int m, int k, int n, int blockRows, int blockCols) {
@@ -92,7 +94,12 @@ void MpiProduct(float **A, float **B, float **C, int m, int k, int n, int blockR
     scatterMatrix(B, k, n, k, nb, PROCESS_GRID, 0, 1, &subB, &subk, &subn) ;
     scatterMatrix(C, m, n, mb, nb, PROCESS_GRID, 0, 0, &subC, &subm, &subn) ;
     
-    subMatrixProduct(subA, subB, subC, subm, subk, subn) ;
+    #ifdef OPEN_MP
+        openMpProduct(subA, subB, subC, subm, subk, subn) ;
+    #else
+        matrixProduct(subA, subB, subC, subm, subk, subn) ;
+    #endif 
+
 
     gatherFinalMatrix(subC, m, n, mb, nb, subm, subn, C) ;
 
@@ -171,17 +178,6 @@ void gatherFinalMatrix(
         // printf("TIME GATHER > %f\n", end - start) ;
         freeSendDataTypes(returnTypes) ;
         // printf("COMPLETED PRODUCT\n") ;
-    }
-}
-
-void subMatrixProduct(float **subA, float **subB, float **subC, int subm, int subk, int subn) {
-    //printf("DIMENSIONS > %d %d %d\n", subm, subk, subn) ;
-    for (int i = 0 ; i < subm ; i++) {
-        for (int t = 0 ; t < subk ; t++) {
-            for (int j = 0 ; j < subn ; j++) {
-                subC[i][j] += subA[i][t] * subB[t][j] ;
-            }
-        }
     }
 }
 

@@ -34,7 +34,33 @@ add_library(MpiProduct
     code/MPI/SendRecvUtils.c 
     code/MPI/SendRecvUtils.h
 )
+target_link_libraries(MpiProduct 
+    PRIVATE Sequential
+)
 target_include_directories(MpiProduct PUBLIC code/MPI)
+
+## Target for OpenMP utility
+add_library(OpenMp
+    code/OpenMp/OpenMpProduct.c
+    code/OpenMp/OpenMpProduct.h
+)
+target_include_directories(OpenMp PUBLIC code/OpenMp)
+
+## Target for MPI/OpenMP utility
+add_library(OpenMpiProduct
+    code/MPI/MpiProduct.c
+    code/MPI/MpiProduct.h 
+    code/MPI/SendRecvUtils.c 
+    code/MPI/SendRecvUtils.h
+)
+target_link_libraries(OpenMpiProduct 
+    PRIVATE OpenMp
+)
+target_compile_options(OpenMpiProduct 
+    PRIVATE -dOPEN_MP
+)
+target_include_directories(OpenMpiProduct PUBLIC code/MPI)
+
 
 ## Target for Test utility
 add_library(Test

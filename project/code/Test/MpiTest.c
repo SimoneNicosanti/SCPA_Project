@@ -102,7 +102,7 @@ double doParTest(float **A, float **B, float **C, int m, int k, int n) {
 
 double doSeqTest(float **A, float **B, float **C, int m, int k, int n) {
     double seqStart = MPI_Wtime() ;
-    sequentialMultiplication(A, B, C, m, k, n) ;
+    matrixProduct(A, B, C, m, k, n) ;
     double seqEnd = MPI_Wtime() ;
 
     return seqEnd - seqStart ;
