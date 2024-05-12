@@ -9,9 +9,10 @@
 #include "ResultWriter.h"
 
 #define MAX_ATT 3
-#define MAX_PROB_DIM 10100
+#define MAX_PROB_DIM 10001
 #define MAX_SEQ_DIM 2001
-#define START_PROB_DIM 100
+#define START_PROB_DIM 250
+#define SIZE_INCREMENT 250
 
 double doParTest(float **A, float **B, float **C, int m, int k, int n) ;
 double doSeqTest(float **A, float **B, float **C, int m, int k, int n) ;
@@ -31,7 +32,7 @@ void main(int argc, char *argv[]) {
     double relativeError ;
     TestResult testResult ;
     testResult.processNum = procNum ;
-    for (int probDim = START_PROB_DIM ; probDim < MAX_PROB_DIM ; probDim += 500) {
+    for (int probDim = START_PROB_DIM ; probDim < MAX_PROB_DIM ; probDim += SIZE_INCREMENT) {
 
         if (myRank == 0) {
             printf("TEST CON (%d, %d, %d)\n", probDim, probDim, probDim) ;

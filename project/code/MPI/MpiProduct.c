@@ -95,7 +95,7 @@ void MpiProduct(float **A, float **B, float **C, int m, int k, int n, int blockR
     scatterMatrix(C, m, n, mb, nb, PROCESS_GRID, 0, 0, &subC, &subm, &subn) ;
     
     #ifdef OPEN_MP
-        openMpProduct(subA, subB, subC, subm, subk, subn) ;
+        openMpProduct(subA, subB, subC, subm, subk, subn, mb) ;
     #else
         matrixProduct(subA, subB, subC, subm, subk, subn) ;
     #endif 
