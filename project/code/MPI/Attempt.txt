@@ -164,8 +164,6 @@ void matricesSendAll(
 }
 
 
-// Executes C <- A * B sui sottoblocchi
-// TODO > Modificare invio: invio tutti i pezzi che servono al singolo processo; in questo modo può cominciare a lavorare!!
 void executeCompleteProduct(
     float **subA, float **subB, float **subC,
     int m, int k, int n,

@@ -61,7 +61,7 @@ void gatherFinalMatrix(
     float **C
 ) ;
 
-
+// TODO Gestire errori MPI
 void MpiProduct(float **A, float **B, float **C, int m, int k, int n, int blockRows, int blockCols) {
     int mb = ROW_BLOCK_SIZE ;
     int nb = COL_BLOCK_SIZE ;
@@ -94,12 +94,18 @@ void MpiProduct(float **A, float **B, float **C, int m, int k, int n, int blockR
     scatterMatrix(B, k, n, k, nb, PROCESS_GRID, 0, 1, &subB, &subk, &subn) ;
     scatterMatrix(C, m, n, mb, nb, PROCESS_GRID, 0, 0, &subC, &subm, &subn) ;
     
+    MPI_Barrier(WORLD_COMM) ;
+    double start = MPI_Wtime() ;
     #ifdef OPEN_MP
         openMpProduct(subA, subB, subC, subm, subk, subn, mb) ;
     #else
         matrixProduct(subA, subB, subC, subm, subk, subn) ;
     #endif 
-
+    //MPI_Barrier(WORLD_COMM) ;
+    double end = MPI_Wtime() ;
+    if (processInfo.myRank == 0) {
+        printf("Product Time > %f\n", end - start) ;
+    }
 
     gatherFinalMatrix(subC, m, n, mb, nb, subm, subn, C) ;
 
@@ -142,10 +148,8 @@ void gatherFinalMatrix(
 
     if (processInfo.myRank != ROOT_PROCESS) {
         MPI_Send(&(subMatrix[0][0]), subMatRows * subMatCols, TYPE_MATRIX_NUM, ROOT_PROCESS, SEND_TAG, CART_COMM) ;
-    }
-   
-    if (processInfo.myRank == ROOT_PROCESS) {
-        float start = MPI_Wtime() ;
+    } 
+    else {
         //RECV DEI PEZZI CHE VENGONO MANDATI E INSERIMENTO IN C
         MPI_Datatype returnTypes[3][3] ;
         int gatherGrid[2] = {PROCESS_GRID[0], PROCESS_GRID[1]} ;
@@ -174,10 +178,7 @@ void gatherFinalMatrix(
                 }
             }
         }
-        float end = MPI_Wtime() ;
-        // printf("TIME GATHER > %f\n", end - start) ;
         freeSendDataTypes(returnTypes) ;
-        // printf("COMPLETED PRODUCT\n") ;
     }
 }
 

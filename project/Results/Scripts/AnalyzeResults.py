@@ -19,7 +19,9 @@ def main() :
     for procNum in gflopsDataSet["ProcessNum"].unique() :
         subDataSet = gflopsDataSet[gflopsDataSet["ProcessNum"] == procNum]
         plt.plot(subDataSet["K"], subDataSet["GFLOPS"], marker = "o", label = f"Process Num = {procNum}")
+    plt.xticks([x for x in range(0, 6250, 250)], rotation = 30)
     plt.legend()
+    plt.grid()
     plt.xlabel("K")
     plt.ylabel("GFLOPS")
     plt.title("GFLOPS Trend")
