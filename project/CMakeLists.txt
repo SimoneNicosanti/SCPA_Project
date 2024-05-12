@@ -20,13 +20,6 @@ add_library(Utils
 )
 target_include_directories(Utils PUBLIC code/Utils)
 
-## Targer for Sequential utility
-add_library(Sequential
-    code/Sequential/Sequential.h
-    code/Sequential/Sequential.c
-)
-target_include_directories(Sequential PUBLIC code/Sequential)
-
 ## Target for MPI utility
 add_library(MpiProduct
     code/MPI/MpiProduct.c
@@ -35,7 +28,7 @@ add_library(MpiProduct
     code/MPI/SendRecvUtils.h
 )
 target_link_libraries(MpiProduct 
-    PRIVATE Sequential
+    PRIVATE Matrix
 )
 target_include_directories(MpiProduct PUBLIC code/MPI)
 
@@ -86,7 +79,6 @@ add_executable(MpiTest.out
 target_link_libraries(MpiTest.out 
     PRIVATE Matrix
     PRIVATE MpiProduct
-    PRIVATE Sequential
     PRIVATE Test
     PRIVATE Utils
     PRIVATE ${MPI_CXX_LIBRARIES}
@@ -100,7 +92,6 @@ add_executable(MpiSingleTest.out
 target_link_libraries(MpiSingleTest.out 
     PRIVATE Matrix
     PRIVATE MpiProduct
-    PRIVATE Sequential
     PRIVATE Test
     PRIVATE Utils
     PRIVATE ${MPI_CXX_LIBRARIES}
@@ -112,7 +103,6 @@ add_executable(OpenMpiSingleTest.out
 target_link_libraries(OpenMpiSingleTest.out 
     PRIVATE Matrix
     PRIVATE OpenMpiProduct
-    PRIVATE Sequential
     PRIVATE Test
     PRIVATE Utils
     PRIVATE ${MPI_CXX_LIBRARIES}

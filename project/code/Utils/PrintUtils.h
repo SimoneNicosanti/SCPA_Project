@@ -12,7 +12,7 @@ typedef union Content
     char *string ;
     float *realArray ;
     int *intArray ;
-    float **matrix ;
+    float *matrix ;
     int integer ;
     float real ;
 } Content ;

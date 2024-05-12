@@ -1,6 +1,12 @@
 #pragma once
 
-float **allocRandomMatrix(int rowsNum, int colsNum) ;
-float **allocMatrix(int rowsNum, int colsNum) ;
-double computeRelativeError(float **A, float **B, int m, int n) ;
-void freeMatrix(float **matrix, int rows, int cols) ;
+#define INDEX(i, j, numCols) i * numCols + j
+
+typedef float * Matrix ;
+typedef float MatrixElemType ;
+
+void matrixProduct(Matrix A, Matrix B, Matrix C, int m, int k, int n) ;
+Matrix allocMatrix(int rowsNum, int colsNum) ;
+Matrix allocRandomMatrix(int rowsNum, int colsNum) ;
+void freeMatrix(Matrix matrix) ;
+double computeRelativeError(Matrix A, Matrix B, int m, int n) ;

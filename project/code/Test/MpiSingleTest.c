@@ -5,7 +5,6 @@
 
 #include "Matrix.h"
 #include "MpiProduct.h"
-#include "Sequential.h"
 #include "ResultWriter.h"
 #include "PrintUtils.h"
 
@@ -14,8 +13,8 @@
 #define MAX_SEQ_DIM 2001
 #define START_PROB_DIM 100
 
-double doParTest(float **A, float **B, float **C, int m, int k, int n, int blockRows, int blockCols) ;
-double doSeqTest(float **A, float **B, float **C, int m, int k, int n) ;
+double doParTest(Matrix A, Matrix B, Matrix C, int m, int k, int n, int blockRows, int blockCols) ;
+double doSeqTest(Matrix A, Matrix B, Matrix C, int m, int k, int n) ;
 int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *blockRowsPtr, int *blockColsPtr) ;
 
 
@@ -27,7 +26,7 @@ void main(int argc, char *argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
     MPI_Comm_size(MPI_COMM_WORLD, &procNum);
 
-    float **A, **B, **C, **parC, **seqC ;
+    Matrix A, B, C, parC, seqC ;
     double seqTime = 0, parTime = 0 ;
     double relativeError = 0 ;
 
@@ -41,17 +40,17 @@ void main(int argc, char *argv[]) {
 
         for (int i = 0 ; i < m ; i++) {
             for (int j = 0 ; j < k ; j++) {
-                A[i][j] = i*k + j ;
+                A[INDEX(i,j,k)] = i*k + j ;
             }
         }
         for (int i = 0 ; i < k ; i++) {
             for (int j = 0 ; j < n ; j++) {
-                B[i][j] = i*n + j ;
+                B[INDEX(i,j,n)] = i*n + j ;
             }
         }
         for (int i = 0 ; i < m ; i++) {
             for (int j = 0 ; j < n ; j++) {
-                C[i][j] = i*n + j ;
+                C[INDEX(i,j,n)] = i*n + j ;
             }
         }
 
@@ -60,8 +59,8 @@ void main(int argc, char *argv[]) {
     }
 
     if (myRank == 0) {
-        memcpy(&(parC[0][0]), &(C[0][0]), sizeof(float) * m * n) ;
-        memcpy(&(seqC[0][0]), &(C[0][0]), sizeof(float) * m * n) ;
+        memcpy(parC, C, sizeof(MatrixElemType) * m * n) ;
+        memcpy(seqC, C, sizeof(MatrixElemType) * m * n) ;
     }
 
     parTime = doParTest(A, B, parC, m, k, n, blockRows, blockCols) ;
@@ -80,17 +79,17 @@ void main(int argc, char *argv[]) {
     }
 
     if (myRank == 0) {
-        freeMatrix(A, m, k) ;
-        freeMatrix(B, k, n) ;
-        freeMatrix(C, m, n) ;
-        freeMatrix(parC, m, n) ;
-        freeMatrix(seqC, m, n) ;
+        freeMatrix(A) ;
+        freeMatrix(B) ;
+        freeMatrix(C) ;
+        freeMatrix(parC) ;
+        freeMatrix(seqC) ;
     }
 
     MPI_Finalize() ;
 }
 
-double doParTest(float **A, float **B, float **C, int m, int k, int n, int blockRows, int blockCols) {
+double doParTest(Matrix A, Matrix B, Matrix C, int m, int k, int n, int blockRows, int blockCols) {
     MPI_Barrier(MPI_COMM_WORLD) ;
     double startTime = MPI_Wtime() ;
 
@@ -102,7 +101,7 @@ double doParTest(float **A, float **B, float **C, int m, int k, int n, int block
     return endTime - startTime ;
 }
 
-double doSeqTest(float **A, float **B, float **C, int m, int k, int n) {
+double doSeqTest(Matrix A, Matrix B, Matrix C, int m, int k, int n) {
     double seqStart = MPI_Wtime() ;
     matrixProduct(A, B, C, m, k, n) ;
     double seqEnd = MPI_Wtime() ;

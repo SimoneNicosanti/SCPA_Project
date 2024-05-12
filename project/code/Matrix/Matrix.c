@@ -7,9 +7,10 @@
 #define RAND_LOWER_BOUND -100
 #define RAND_UPPER_BOUND 100
 
-float generateRandomNumber(int min, int max) {
 
-    float scaled = (float)rand() / RAND_MAX ;
+MatrixElemType generateRandomNumber(int min, int max) {
+
+    MatrixElemType scaled = (MatrixElemType)rand() / RAND_MAX ;
     return min + scaled * (max - min);
 }
 
@@ -18,50 +19,59 @@ float generateRandomNumber(int min, int max) {
     an array pointing to the beginning of each row.
     The matrix is initialized to zero
 */
-float **allocMatrix(int rowsNum, int colsNum) {
-    float *matrixData = calloc(rowsNum * colsNum, sizeof(float));
+Matrix allocMatrix(int rowsNum, int colsNum) {
+    Matrix matrixData = (Matrix) calloc(rowsNum * colsNum, sizeof(MatrixElemType));
     if (matrixData == NULL) {
         return NULL ;
     }
 
-    float **matrix = malloc(rowsNum * sizeof(float *));
-    if (matrix == NULL) {
-        return NULL ;
-    }
+    // float **matrix = malloc(rowsNum * sizeof(float *));
+    // if (matrix == NULL) {
+    //     return NULL ;
+    // }
 
-    for (int i = 0 ; i < rowsNum ; i++)
-        matrix[i] = &(matrixData[i * colsNum]);
+    // for (int i = 0 ; i < rowsNum ; i++)
+    //     matrix[i] = &(matrixData[i * colsNum]);
     
-    return matrix;
+    return matrixData;
 }
 
 
 /*
     Allocs a random matrix
 */
-float **allocRandomMatrix(int rowsNum, int colsNum) {
-    float **matrix = allocMatrix(rowsNum, colsNum) ;
+Matrix allocRandomMatrix(int rowsNum, int colsNum) {
+    Matrix matrix = allocMatrix(rowsNum, colsNum) ;
     if (matrix == NULL) {
         return NULL ;
     }
 
     for (int i = 0 ; i < rowsNum ; i++) {
         for (int j = 0 ; j < colsNum ; j++) {
-            matrix[i][j] = generateRandomNumber(RAND_LOWER_BOUND, RAND_UPPER_BOUND) ;
+            matrix[INDEX(i,j,colsNum)] = generateRandomNumber(RAND_LOWER_BOUND, RAND_UPPER_BOUND) ;
         }
     }
 
     return matrix ;
 }
 
-void freeMatrix(float **matrix, int rows, int cols) {
-    if (rows > 0 && cols > 0) {
-        free(&(matrix[0][0])) ;
-        free(matrix) ;
+void freeMatrix(Matrix matrix) {
+    free(matrix) ;
+}
+
+
+void matrixProduct(Matrix A, Matrix B, Matrix C, int m, int k, int n) {
+    for (int i = 0 ; i < m ; i++) {
+        for (int t = 0 ; t < k ; t++) {
+            for (int j = 0 ; j < n ; j++) {
+                C[INDEX(i,j,n)] += A[INDEX(i,t,k)] * B[INDEX(t,j,n)] ;
+            }
+        }
     }
 }
 
-double computeRelativeError(float **A, float **B, int m, int n) {
+
+double computeRelativeError(Matrix A, Matrix B, int m, int n) {
     double normNum = 0 ;
     double normDen = 0 ;
 
@@ -69,8 +79,8 @@ double computeRelativeError(float **A, float **B, int m, int n) {
         double rowNormNum = 0 ;
         double rowNormDen = 0 ;
         for (int j = 0 ; j < n ; j++) {
-            rowNormNum += fabs(B[i][j] - A[i][j]) ;
-            rowNormDen += fabs(A[i][j]) ;
+            rowNormNum += fabs(B[INDEX(i,j,n)] - A[INDEX(i,j,n)]) ;
+            rowNormDen += fabs(A[INDEX(i,j,n)]) ;
         }
 
         if (normNum < rowNormNum) {

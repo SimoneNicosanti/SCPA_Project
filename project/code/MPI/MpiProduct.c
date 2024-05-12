@@ -9,7 +9,6 @@
 #include "SendRecvUtils.h"
 #include "../Utils/PrintUtils.h"
 
-#include "../Sequential/Sequential.h"
 #include "../OpenMp/OpenMpProduct.h"
 
 #define PROCESS_GRID_DIMS 2
@@ -33,36 +32,36 @@ ProcessInfo processInfo ;
 int PROCESS_GRID[PROCESS_GRID_DIMS] = {0} ;
 
 void scatterMatrix(
-    float **matrix, 
+    Matrix matrix, 
     int rows, int cols, 
     int blockRows, int blockCols, 
     int *processGrid,
     int perGroupOfRows, int perGroupOfCols,
-    float ***subMatrix, int *subRowsPtr, int *subColsPtr
+    Matrix *subMatrix, int *subRowsPtr, int *subColsPtr
 ) ;
-float **matrixSendToAll(
-    float **matrix, 
+Matrix matrixSendToAll(
+    Matrix matrix, 
     int rows, int cols, int blockRows, int blockCols, 
     int *processGrid, 
     int perGroupOfRows, int perGroupOfCols, 
     int *subMatRows, int *subMatCols
 ) ;
-float **matrixRecvFromRoot(
+Matrix matrixRecvFromRoot(
     int rows, int cols, int blockRows, int blockCols, 
     int *processGrid, 
     int perGroupOfRows, int perGroupOfCols,
     int *subRowsPtr, int *subColsPtr
 ) ;
 void gatherFinalMatrix(
-    float **subC,
+    Matrix subC,
     int m, int n,
     int mb, int nb,
     int subm, int subn,
-    float **C
+    Matrix C
 ) ;
 
 // TODO Gestire errori MPI
-void MpiProduct(float **A, float **B, float **C, int m, int k, int n, int blockRows, int blockCols) {
+void MpiProduct(Matrix A, Matrix B, Matrix C, int m, int k, int n, int blockRows, int blockCols) {
     int mb = ROW_BLOCK_SIZE ;
     int nb = COL_BLOCK_SIZE ;
     if (blockRows > 0) {
@@ -87,7 +86,7 @@ void MpiProduct(float **A, float **B, float **C, int m, int k, int n, int blockR
     MPI_Cart_create(WORLD_COMM, 2, PROCESS_GRID, periods, 0, &CART_COMM) ;
     MPI_Cart_coords(CART_COMM, processInfo.myRank, 2, &processInfo.myCoords) ;
 
-    float **subA, **subB, **subC ;
+    Matrix subA, subB, subC ;
     int subm, subk, subn ;
     
     scatterMatrix(A, m, k, mb, k, PROCESS_GRID, 1, 0, &subA, &subm, &subk) ;
@@ -112,22 +111,22 @@ void MpiProduct(float **A, float **B, float **C, int m, int k, int n, int blockR
     MPI_Comm_free(&WORLD_COMM) ;
     MPI_Comm_free(&CART_COMM) ;
 
-    freeMatrix(subA, subm, subk) ;
-    freeMatrix(subB, subk, subn) ;
-    freeMatrix(subC, subm, subn) ;
+    freeMatrix(subA) ;
+    freeMatrix(subB) ;
+    freeMatrix(subC) ;
 
     return ;
 }
 
 void scatterMatrix(
-    float **matrix, 
+    Matrix matrix, 
     int rows, int cols, 
     int blockRows, int blockCols, 
     int *processGrid,
     int perGroupOfRows, int perGroupOfCols,
-    float ***subMatrix, int *subRowsPtr, int *subColsPtr
+    Matrix *subMatrix, int *subRowsPtr, int *subColsPtr
 ) {
-    float **returnMatrix ;
+    Matrix returnMatrix ;
     if (processInfo.myRank == ROOT_PROCESS) {
         returnMatrix = matrixSendToAll(matrix, rows, cols, blockRows, blockCols, processGrid, perGroupOfRows, perGroupOfCols, subRowsPtr, subColsPtr) ;
     } else {
@@ -139,15 +138,15 @@ void scatterMatrix(
 
 
 void gatherFinalMatrix(
-    float **subMatrix,
+    Matrix subMatrix,
     int rows, int cols,
     int blockRows, int blockCols,
     int subMatRows, int subMatCols,
-    float **matrix
+    Matrix matrix
 ) {
 
     if (processInfo.myRank != ROOT_PROCESS) {
-        MPI_Send(&(subMatrix[0][0]), subMatRows * subMatCols, TYPE_MATRIX_NUM, ROOT_PROCESS, SEND_TAG, CART_COMM) ;
+        MPI_Send(subMatrix, subMatRows * subMatCols, TYPE_MATRIX_NUM, ROOT_PROCESS, SEND_TAG, CART_COMM) ;
     } 
     else {
         //RECV DEI PEZZI CHE VENGONO MANDATI E INSERIMENTO IN C
@@ -168,11 +167,11 @@ void gatherFinalMatrix(
                 MPI_Request mpiRequest ;
 
                 if (proc != processInfo.myRank) {
-                    MPI_Recv(&(matrix[rowIndex * blockRows][colIndex * blockCols]), 1, returnType, proc, SEND_TAG, CART_COMM, MPI_STATUS_IGNORE) ;
+                    MPI_Recv(&(matrix[INDEX(rowIndex * blockRows, colIndex * blockCols, cols)]), 1, returnType, proc, SEND_TAG, CART_COMM, MPI_STATUS_IGNORE) ;
                 } else {
                     MPI_Sendrecv(
-                        &(subMatrix[0][0]), subMatRows * subMatCols, TYPE_MATRIX_NUM, processInfo.myRank, SEND_TAG, 
-                        &(matrix[rowIndex * blockRows][colIndex * blockCols]), 1, returnType, proc, SEND_TAG,
+                        subMatrix, subMatRows * subMatCols, TYPE_MATRIX_NUM, processInfo.myRank, SEND_TAG, 
+                        &(matrix[INDEX(rowIndex * blockRows, colIndex * blockCols, cols)]), 1, returnType, proc, SEND_TAG,
                         CART_COMM, MPI_STATUS_IGNORE) ;
                     // printf("Process ROOT > Done SendRecv\n") ;
                 }
@@ -183,7 +182,7 @@ void gatherFinalMatrix(
 }
 
 
-float **matrixRecvFromRoot(
+Matrix matrixRecvFromRoot(
     int rows, int cols, 
     int blockRows, int blockCols, 
     int *processGrid, 
@@ -216,8 +215,8 @@ float **matrixRecvFromRoot(
     //     printf("Indexes > %d %d\n", rowIndex, colIndex) ;
     // }
     computeSubMatrixDimsPerProc(rowIndex, colIndex, processGrid, rows, cols, blockRows, blockCols, &subMatRows, &subMatCols) ;
-    float **subMat = allocMatrix(subMatRows, subMatCols) ;
-    MPI_Recv(&(subMat[0][0]), subMatRows * subMatCols, TYPE_MATRIX_NUM, ROOT_PROCESS, SEND_TAG, CART_COMM, MPI_STATUS_IGNORE) ;
+    Matrix subMat = allocMatrix(subMatRows, subMatCols) ;
+    MPI_Recv(subMat, subMatRows * subMatCols, TYPE_MATRIX_NUM, ROOT_PROCESS, SEND_TAG, CART_COMM, MPI_STATUS_IGNORE) ;
     
     Content content ;
     content.matrix = subMat ;
@@ -227,8 +226,8 @@ float **matrixRecvFromRoot(
     return subMat ;
 }
 
-float **matrixSendToAll(
-    float **matrix, 
+Matrix matrixSendToAll(
+    Matrix matrix, 
     int rows, int cols, 
     int blockRows, int blockCols, 
     int *processGrid, 
@@ -236,7 +235,7 @@ float **matrixSendToAll(
     int *subMatRows, int *subMatCols
 ) {
 
-    float **subMat = NULL ;
+    Matrix subMat = NULL ;
     MPI_Datatype matrixTypes[3][3] ;
     createSendDataTypes(rows, cols, blockRows, blockCols, processGrid, TYPE_MATRIX_NUM, matrixTypes) ;
 
@@ -265,14 +264,14 @@ float **matrixSendToAll(
             MPI_Request mpiRequest ;
 
             if (proc != ROOT_PROCESS) {
-                MPI_Send(&(matrix[rowIndex * blockRows][colIndex * blockCols]), 1, sendType, proc, SEND_TAG, CART_COMM) ;
+                MPI_Send(&(matrix[INDEX(rowIndex * blockRows, colIndex * blockCols, cols)]), 1, sendType, proc, SEND_TAG, CART_COMM) ;
             } else {
                 computeSubMatrixDimsPerProc(rowIndex, colIndex, processGrid, rows, cols, blockRows, blockCols, subMatRows, subMatCols) ;
                 subMat = allocMatrix(*subMatRows, *subMatCols) ;
 
                 MPI_Sendrecv(
-                    &(matrix[rowIndex * blockRows][colIndex * blockCols]), 1, sendType, proc, SEND_TAG,
-                    &(subMat[0][0]), (*subMatRows) * (*subMatCols), TYPE_MATRIX_NUM, ROOT_PROCESS, SEND_TAG, CART_COMM, MPI_STATUS_IGNORE) ;
+                    &(matrix[INDEX(rowIndex * blockRows, colIndex * blockCols, cols)]), 1, sendType, proc, SEND_TAG,
+                    subMat, (*subMatRows) * (*subMatCols), TYPE_MATRIX_NUM, ROOT_PROCESS, SEND_TAG, CART_COMM, MPI_STATUS_IGNORE) ;
             }
         }
     }

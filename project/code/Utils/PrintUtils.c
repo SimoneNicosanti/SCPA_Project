@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "PrintUtils.h"
 
-void printMatrix(float **matrix, int firstDimLen, int secDimLen) ;
+void printMatrix(float *matrix, int firstDimLen, int secDimLen) ;
 void printRealArray(float *array, int dim) ;
 void printIntegerArray(int *array, int dim) ;
 
@@ -64,9 +64,9 @@ void printRealArray(float *array, int dim) {
     printf("]\n") ;
 }
 
-void printMatrix(float **matrix, int firstDimLen, int secDimLen) {
+void printMatrix(float *matrix, int firstDimLen, int secDimLen) {
     for (int i = 0 ; i < firstDimLen ; i++) {
-        printRealArray(matrix[i], secDimLen) ;
+        printRealArray(&matrix[i], secDimLen) ;
     }
     printf("\n") ;
 }
