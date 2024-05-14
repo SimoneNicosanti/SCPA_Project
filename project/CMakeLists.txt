@@ -3,76 +3,100 @@ project(SCPA_Project)
 
 # Set a custom build directory
 set(CUSTOM_BUILD_DIR ${CMAKE_SOURCE_DIR}/out)
-# set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
+
+# Set compilation flags
+add_compile_options(-O3) # Optimization Flag
+# add_compile_options(-march=native) # Optimization Flag
+# add_compile_options(-ffast-math) # Optimization Flag
+# add_compile_options(-funroll-loops) # Optimization Flag
+
+# add_compile_options(-Wall)
+# add_compile_options(-Wextra)
+
+# Find MPI and OpenMP Packages
+find_package(MPI REQUIRED)
+find_package(OpenMP REQUIRED)
+include_directories(SYSTEM ${MPI_INCLUDE_PATH})
 
 
 ## Target for Matrix utility
+file(GLOB Matrix_Src code/Matrix/*)
 add_library(Matrix
-    code/Matrix/Matrix.h
-    code/Matrix/Matrix.c
+    ${Matrix_Src}
 )
-target_include_directories(Matrix PUBLIC code/Matrix)
+target_include_directories(Matrix 
+    PUBLIC code/Matrix
+)
 
 ## Target for Utils utility
+file(GLOB Utils_Src code/Utils/*)
 add_library(Utils
-    code/Utils/PrintUtils.c
-    code/Utils/PrintUtils.h
+    ${Utils_Src}
 )
-target_include_directories(Utils PUBLIC code/Utils)
+target_include_directories(Utils 
+    PUBLIC code/Utils
+)
 
-## Target for MPI utility
-add_library(MpiProduct
-    code/MPI/MpiProduct.c
-    code/MPI/MpiProduct.h 
-    code/MPI/SendRecvUtils.c 
-    code/MPI/SendRecvUtils.h
-)
-target_link_libraries(MpiProduct 
-    PRIVATE Matrix
-)
-target_include_directories(MpiProduct PUBLIC code/MPI)
 
 ## Target for OpenMP utility
-find_package(OpenMP REQUIRED)
+file(GLOB OpenMp_Src code/OpenMp/*)
 add_library(OpenMp
-    code/OpenMp/OpenMpProduct.c
-    code/OpenMp/OpenMpProduct.h
+    ${OpenMp_Src}
 )
 target_link_libraries(OpenMp
-    PRIVATE OpenMP::OpenMP_CXX
+    PUBLIC OpenMP::OpenMP_CXX
+    PUBLIC Matrix
 )
 target_compile_options(OpenMp  
     PRIVATE -fopenmp
 )
-target_include_directories(OpenMp PUBLIC code/OpenMp)
+
+
+## Target for MPI utility
+file(GLOB MpiProduct_Src code/MPI/*)
+add_library(MpiProduct
+    ${MpiProduct_Src}
+)
+target_include_directories(MpiProduct 
+    PUBLIC code/MPI
+)
+target_link_libraries(MpiProduct 
+    PRIVATE Matrix
+    PRIVATE Utils
+    PRIVATE ${MPI_C_LIBRARIES}
+)
+
 
 ## Target for MPI/OpenMP utility
 add_library(OpenMpiProduct
-    code/MPI/MpiProduct.c
-    code/MPI/MpiProduct.h 
-    code/MPI/SendRecvUtils.c 
-    code/MPI/SendRecvUtils.h
+    ${MpiProduct_Src}
+)
+target_include_directories(OpenMpiProduct 
+    PUBLIC code/MPI
+    PUBLIC code/OpenMp
 )
 target_link_libraries(OpenMpiProduct 
-    PRIVATE OpenMp
+    PUBLIC OpenMp
+    PUBLIC Matrix
+    PUBLIC Utils
+    PRIVATE ${MPI_C_LIBRARIES}
 )
 target_compile_options(OpenMpiProduct 
     PRIVATE -DOPEN_MP
 )
-target_include_directories(OpenMpiProduct PUBLIC code/MPI)
 
 
 ## Target for Test utility
+file(GLOB Test_Src code/Test/ResultWriter.*)
 add_library(Test
-    code/Test/ResultWriter.c
-    code/Test/ResultWriter.h
+    ${Test_Src}
 )
-target_include_directories(Test PUBLIC code/Test)
+target_include_directories(Test 
+    PUBLIC code/Test
+)
 
 
-## MPI
-find_package(MPI REQUIRED)
-include_directories(${MPI_INCLUDE_PATH})
+## MPI executables
 add_executable(MpiTest.out 
     code/Test/MpiTest.c
 )
@@ -81,11 +105,9 @@ target_link_libraries(MpiTest.out
     PRIVATE MpiProduct
     PRIVATE Test
     PRIVATE Utils
-    PRIVATE ${MPI_CXX_LIBRARIES}
+    PRIVATE ${MPI_C_LIBRARIES}
 )
 
-find_package(MPI REQUIRED)
-include_directories(${MPI_INCLUDE_PATH})
 add_executable(MpiSingleTest.out 
     code/Test/MpiSingleTest.c
 )
@@ -97,6 +119,7 @@ target_link_libraries(MpiSingleTest.out
     PRIVATE ${MPI_CXX_LIBRARIES}
 )
 
+# MPI/OpenMP Executables
 add_executable(OpenMpiSingleTest.out 
     code/Test/MpiSingleTest.c
 )
@@ -108,7 +131,22 @@ target_link_libraries(OpenMpiSingleTest.out
     PRIVATE ${MPI_CXX_LIBRARIES}
 )
 target_compile_options(OpenMpiSingleTest.out  
-PRIVATE -fopenmp
+    PRIVATE -fopenmp
+)
+
+# MPI/OpenMp Tests
+add_executable(OpenMpiTest.out 
+    code/Test/MpiSingleTest.c
+)
+target_link_libraries(OpenMpiTest.out 
+    PRIVATE Matrix
+    PRIVATE OpenMpiProduct
+    PRIVATE Test
+    PRIVATE Utils
+    PRIVATE ${MPI_CXX_LIBRARIES}
+)
+target_compile_options(OpenMpiTest.out  
+    PRIVATE -fopenmp
 )
 
 # ## CUDA
@@ -117,6 +155,10 @@ PRIVATE -fopenmp
 #     PRIVATE Matrix
 #     PRIVATE Test
 # )
+
+
+
+
 
 # Specify the output directory for the executable
 set_target_properties(MpiTest.out  PROPERTIES
@@ -128,5 +170,9 @@ set_target_properties(MpiSingleTest.out  PROPERTIES
 )
 
 set_target_properties(OpenMpiSingleTest.out  PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CUSTOM_BUILD_DIR}
+)
+
+set_target_properties(OpenMpiTest.out   PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CUSTOM_BUILD_DIR}
 )

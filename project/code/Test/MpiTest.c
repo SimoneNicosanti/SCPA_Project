@@ -8,7 +8,7 @@
 #include "ResultWriter.h"
 
 #define MAX_ATT 3
-#define MAX_PROB_DIM 10001
+#define MAX_PROB_DIM 6001
 #define MAX_SEQ_DIM 2001
 #define START_PROB_DIM 250
 #define SIZE_INCREMENT 250
@@ -16,6 +16,104 @@
 double doParTest(Matrix A, Matrix B, Matrix C, int m, int k, int n) ;
 double doSeqTest(Matrix A, Matrix B, Matrix C, int m, int k, int n) ;
 int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *mbPtr, int *kbPtr, int *nbPtr, int *testSeqPtr) ;
+void testProducts(int myRank, int procNum, int m, int k, int n, char *resultFile) ;
+void squareTests(int procNum, int myRank) ;
+void rectangularTests(int procNum, int myRank) ;
+
+
+
+void squareTests(int procNum, int myRank) {
+    for (int probDim = START_PROB_DIM ; probDim < MAX_PROB_DIM ; probDim += SIZE_INCREMENT) {
+        if (myRank == 0) {
+            printf("#Processi %d > TEST CON (%d, %d, %d)\n", procNum, probDim, probDim, probDim) ;
+        }
+        char *outputPath ;
+        #ifdef OPEN_MP
+        outputPath = "../Results/OpenMpi/Tests/OpenMpi_Square_Test.csv" ;
+        #else
+        outputPath = "../Results/MPI/Tests/MPI_Square_Test.csv" ;
+        #endif
+
+        testProducts(myRank, procNum, probDim, probDim, probDim, outputPath) ;
+    }
+}
+
+void rectangularTests(int procNum, int myRank) {
+    Matrix A, B, C, parC, seqC ;
+    double seqTime, parTime ;
+    double relativeError ;
+
+    int kSizesList[] = {32, 64, 128, 156} ;
+    int otherSizes = 10000 ;
+
+    for (int i = 0 ; i < 4 ; i++) {
+        int k = kSizesList[i] ;
+        if (myRank == 0) {
+            printf("#Processi %d > TEST CON (%d, %d, %d)\n", procNum, otherSizes, k, otherSizes) ;
+        }
+
+        char *outputPath ;
+        #ifdef OPEN_MP
+        outputPath = "../Results/OpenMpi/Tests/OpenMpi_Rect_Test.csv" ;
+        #else
+        outputPath = "../Results/MPI/Tests/MPI_Rect_Test.csv" ;
+        #endif
+
+        testProducts(myRank, procNum, otherSizes, k, otherSizes, outputPath) ;
+    }
+}
+
+void testProducts(int myRank, int procNum, int m, int k, int n, char *resultFile) {
+    Matrix A, B, C, parC, seqC ;
+    double seqTime, parTime ;
+    double relativeError ;
+    TestResult testResult ;
+
+    testResult.processNum = procNum ;
+    testResult.m = m ;
+    testResult.k = k ;
+    testResult.n = n ;
+    if (myRank == 0) {
+        A = allocRandomMatrix(m, k) ;
+        B = allocRandomMatrix(k, n) ;
+        C = allocRandomMatrix(m, n) ;
+        parC = allocMatrix(m, n) ;
+        seqC = allocMatrix(m, n) ;
+    }
+
+    for (int att = 0 ; att < MAX_ATT ; att++) {
+
+        // Have to copy in two different C matrices as the result is overwritten
+        if (myRank == 0) {
+            memcpy(parC, C, sizeof(MatrixElemType) * m * n) ;
+            memcpy(seqC, C, sizeof(MatrixElemType) * m * n) ;
+        }
+
+        testResult.parallelTime = doParTest(A, B, parC, m, k, n) ;
+
+        // ONLY 0 does the parallel product
+        if (myRank == 0 && k < 0) {
+            testResult.sequentialTime = doSeqTest(A, B, seqC, m, k, n) ;
+            testResult.relativeError = computeRelativeError(seqC, parC, m, n) ;
+        } else {
+            testResult.sequentialTime = -1 ;
+            testResult.relativeError = -1 ;
+        }
+
+        // Only zero writes on the CSV file
+        if (myRank == 0) {
+            writeTestResult(resultFile, &testResult) ;
+        }
+    }
+
+    if (myRank == 0) {
+        freeMatrix(A) ;
+        freeMatrix(B) ;
+        freeMatrix(C) ;
+        freeMatrix(parC) ;
+        freeMatrix(seqC) ;
+    }
+} 
 
 
 void main(int argc, char *argv[]) {
@@ -25,66 +123,10 @@ void main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv) ;
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
     MPI_Comm_size(MPI_COMM_WORLD, &procNum);
-
-    Matrix A, B, C, parC, seqC ;
-    double seqTime, parTime ;
-    double relativeError ;
-    TestResult testResult ;
-    testResult.processNum = procNum ;
-    for (int probDim = START_PROB_DIM ; probDim < MAX_PROB_DIM ; probDim += SIZE_INCREMENT) {
-
-        if (myRank == 0) {
-            printf("TEST CON (%d, %d, %d)\n", probDim, probDim, probDim) ;
-        }
-        testResult.m = probDim ;
-        testResult.k = probDim ;
-        testResult.n = probDim ;
-        if (myRank == 0) {
-            A = allocRandomMatrix(probDim, probDim) ;
-            B = allocRandomMatrix(probDim, probDim) ;
-            C = allocRandomMatrix(probDim, probDim) ;
-            parC = allocMatrix(probDim, probDim) ;
-            seqC = allocMatrix(probDim, probDim) ;
-        }
-
-        for (int att = 0 ; att < MAX_ATT ; att++) {
-
-            // Have to copy in two different C matrices as the result is overwritten
-            if (myRank == 0) {
-                memcpy(parC, C, sizeof(MatrixElemType) * probDim * probDim) ;
-                memcpy(seqC, C, sizeof(MatrixElemType) * probDim * probDim) ;
-            }
-
-            testResult.parallelTime = doParTest(A, B, parC, probDim, probDim, probDim) ;
-
-            // ONLY 0 does the parallel product
-            if (myRank == 0 && probDim < 0) {
-                testResult.sequentialTime = doSeqTest(A, B, seqC, probDim, probDim, probDim) ;
-                testResult.relativeError = computeRelativeError(seqC, parC, probDim, probDim) ;
-            } else {
-                testResult.sequentialTime = -1 ;
-                testResult.relativeError = -1 ;
-            }
-
-            // Only zero writes on the CSV file
-            if (myRank == 0) {
-                unsigned long gflopsNum = probDim * probDim * probDim ;
-                testResult.gFLOPS = gflopsNum / testResult.parallelTime ;
-
-                writeTestResult("../Results/MPI/MPI_Test.csv", &testResult) ;
-            }
-        }
-
-        if (myRank == 0) {
-            freeMatrix(A) ;
-            freeMatrix(B) ;
-            freeMatrix(C) ;
-            freeMatrix(parC) ;
-            freeMatrix(seqC) ;
-        }
-
-    }
-
+    
+    rectangularTests(procNum, myRank) ;
+    squareTests(procNum, myRank) ;
+    
     MPI_Finalize() ;
 }
 

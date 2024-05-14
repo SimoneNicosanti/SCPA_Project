@@ -5,19 +5,21 @@
 #include <string.h>
 #include <math.h>
 
-#include "../Matrix/Matrix.h"
+#include "Matrix.h"
 #include "SendRecvUtils.h"
-#include "../Utils/PrintUtils.h"
+#include "PrintUtils.h"
 
-#include "../OpenMp/OpenMpProduct.h"
+#ifdef OPEN_MP
+#include "OpenMpProduct.h"
+#endif
 
 #define PROCESS_GRID_DIMS 2
 #define TYPE_MATRIX_NUM MPI_FLOAT
 #define ROOT_PROCESS 0
 #define SEND_TAG 100
 
-#define ROW_BLOCK_SIZE 52
-#define COL_BLOCK_SIZE 52
+#define ROW_BLOCK_SIZE 50
+#define COL_BLOCK_SIZE 50
 
 MPI_Comm WORLD_COMM ;
 MPI_Comm CART_COMM ;
@@ -53,12 +55,15 @@ Matrix matrixRecvFromRoot(
     int *subRowsPtr, int *subColsPtr
 ) ;
 void gatherFinalMatrix(
-    Matrix subC,
-    int m, int n,
-    int mb, int nb,
-    int subm, int subn,
-    Matrix C
+    Matrix subMatrix,
+    int rows, int cols,
+    int blockRows, int blockCols,
+    int subMatRows, int subMatCols,
+    int *processGrid,
+    Matrix matrix
 ) ;
+
+void setupEnvironment(int m, int k, int n, int mb, int nb) ;
 
 // TODO Gestire errori MPI
 void MpiProduct(Matrix A, Matrix B, Matrix C, int m, int k, int n, int blockRows, int blockCols) {
@@ -71,20 +76,8 @@ void MpiProduct(Matrix A, Matrix B, Matrix C, int m, int k, int n, int blockRows
         nb = blockCols ;
     }
     
-    MPI_Comm_dup(MPI_COMM_WORLD, &WORLD_COMM);
-
-    int procNum ;
-    MPI_Comm_rank(WORLD_COMM, &processInfo.myRank);
-    MPI_Comm_size(WORLD_COMM, &procNum);
-
-    //int PROCESS_GRID[PROCESS_GRID_DIMS] = {0} ;
-    MPI_Dims_create(procNum, PROCESS_GRID_DIMS, PROCESS_GRID) ;
-    // if (processInfo.myRank == ROOT_PROCESS) {
-    //     printf("Cartesian Grid: [%d, %d]\n", PROCESS_GRID[0], PROCESS_GRID[1]) ;
-    // }
-    int periods[2] = {0, 0} ;
-    MPI_Cart_create(WORLD_COMM, 2, PROCESS_GRID, periods, 0, &CART_COMM) ;
-    MPI_Cart_coords(CART_COMM, processInfo.myRank, 2, &processInfo.myCoords) ;
+    setupEnvironment(m, k, n, mb, nb) ;
+   
 
     Matrix subA, subB, subC ;
     int subm, subk, subn ;
@@ -92,21 +85,14 @@ void MpiProduct(Matrix A, Matrix B, Matrix C, int m, int k, int n, int blockRows
     scatterMatrix(A, m, k, mb, k, PROCESS_GRID, 1, 0, &subA, &subm, &subk) ;
     scatterMatrix(B, k, n, k, nb, PROCESS_GRID, 0, 1, &subB, &subk, &subn) ;
     scatterMatrix(C, m, n, mb, nb, PROCESS_GRID, 0, 0, &subC, &subm, &subn) ;
-    
-    MPI_Barrier(WORLD_COMM) ;
-    double start = MPI_Wtime() ;
+
     #ifdef OPEN_MP
         openMpProduct(subA, subB, subC, subm, subk, subn, mb) ;
     #else
         matrixProduct(subA, subB, subC, subm, subk, subn) ;
-    #endif 
-    //MPI_Barrier(WORLD_COMM) ;
-    double end = MPI_Wtime() ;
-    if (processInfo.myRank == 0) {
-        printf("Product Time > %f\n", end - start) ;
-    }
-
-    gatherFinalMatrix(subC, m, n, mb, nb, subm, subn, C) ;
+    #endif
+    
+    gatherFinalMatrix(subC, m, n, mb, nb, subm, subn, PROCESS_GRID, C) ;
 
     MPI_Comm_free(&WORLD_COMM) ;
     MPI_Comm_free(&CART_COMM) ;
@@ -116,6 +102,20 @@ void MpiProduct(Matrix A, Matrix B, Matrix C, int m, int k, int n, int blockRows
     freeMatrix(subC) ;
 
     return ;
+}
+
+void setupEnvironment(int m, int k, int n, int mb, int nb) {
+    MPI_Comm_dup(MPI_COMM_WORLD, &WORLD_COMM);
+
+    int procNum ;
+    MPI_Comm_rank(WORLD_COMM, &processInfo.myRank);
+    MPI_Comm_size(WORLD_COMM, &procNum) ;
+
+    int periods[2] = {0, 0} ;
+    MPI_Dims_create(procNum, PROCESS_GRID_DIMS, PROCESS_GRID) ;
+    MPI_Cart_create(WORLD_COMM, 2, PROCESS_GRID, periods, 0, &CART_COMM) ;
+
+    MPI_Cart_coords(CART_COMM, processInfo.myRank, 2, &processInfo.myCoords) ;
 }
 
 void scatterMatrix(
@@ -142,6 +142,7 @@ void gatherFinalMatrix(
     int rows, int cols,
     int blockRows, int blockCols,
     int subMatRows, int subMatCols,
+    int *processGrid,
     Matrix matrix
 ) {
 
@@ -151,8 +152,7 @@ void gatherFinalMatrix(
     else {
         //RECV DEI PEZZI CHE VENGONO MANDATI E INSERIMENTO IN C
         MPI_Datatype returnTypes[3][3] ;
-        int gatherGrid[2] = {PROCESS_GRID[0], PROCESS_GRID[1]} ;
-        createSendDataTypes(rows, cols, blockRows, blockCols, gatherGrid, TYPE_MATRIX_NUM, returnTypes) ;
+        createSendDataTypes(rows, cols, blockRows, blockCols, processGrid, TYPE_MATRIX_NUM, returnTypes) ;
 
         for (int procRow = 0 ; procRow < PROCESS_GRID[0] ; procRow++) {
             for (int procCol = 0 ; procCol < PROCESS_GRID[1] ; procCol++) {
@@ -163,8 +163,7 @@ void gatherFinalMatrix(
                 int coords[2] = {rowIndex, colIndex} ;
                 MPI_Cart_rank(CART_COMM, coords, &proc) ;
 
-                MPI_Datatype returnType = computeSendTypeForProc(rowIndex, colIndex, gatherGrid, rows, cols, blockRows, blockCols, returnTypes) ;
-                MPI_Request mpiRequest ;
+                MPI_Datatype returnType = computeSendTypeForProc(rowIndex, colIndex, processGrid, rows, cols, blockRows, blockCols, returnTypes) ;
 
                 if (proc != processInfo.myRank) {
                     MPI_Recv(&(matrix[INDEX(rowIndex * blockRows, colIndex * blockCols, cols)]), 1, returnType, proc, SEND_TAG, CART_COMM, MPI_STATUS_IGNORE) ;
@@ -218,8 +217,6 @@ Matrix matrixRecvFromRoot(
     Matrix subMat = allocMatrix(subMatRows, subMatCols) ;
     MPI_Recv(subMat, subMatRows * subMatCols, TYPE_MATRIX_NUM, ROOT_PROCESS, SEND_TAG, CART_COMM, MPI_STATUS_IGNORE) ;
     
-    Content content ;
-    content.matrix = subMat ;
 
     *subRowsPtr = subMatRows ;
     *subColsPtr = subMatCols ;
@@ -261,7 +258,7 @@ Matrix matrixSendToAll(
             }
 
             MPI_Datatype sendType = computeSendTypeForProc(rowIndex, colIndex, processGrid, rows, cols, blockRows, blockCols, matrixTypes) ;
-            MPI_Request mpiRequest ;
+
 
             if (proc != ROOT_PROCESS) {
                 MPI_Send(&(matrix[INDEX(rowIndex * blockRows, colIndex * blockCols, cols)]), 1, sendType, proc, SEND_TAG, CART_COMM) ;
