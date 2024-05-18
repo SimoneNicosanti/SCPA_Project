@@ -8,7 +8,7 @@
 #include "ResultWriter.h"
 
 #define MAX_ATT 3
-#define MAX_PROB_DIM 5001
+#define MAX_PROB_DIM 10001
 #define MAX_SEQ_DIM 2001
 #define START_PROB_DIM 250
 #define SIZE_INCREMENT 250
