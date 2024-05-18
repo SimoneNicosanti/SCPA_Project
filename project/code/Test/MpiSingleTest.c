@@ -90,20 +90,15 @@ void main(int argc, char *argv[]) {
 }
 
 double doParTest(Matrix A, Matrix B, Matrix C, int m, int k, int n, int blockRows, int blockCols) {
-    MPI_Barrier(MPI_COMM_WORLD) ;
-    double startTime = MPI_Wtime() ;
+    Info info ;
+    MpiProduct(A, B, C, m, k, n, blockRows, blockCols, &info) ;
 
-    MpiProduct(A, B, C, m, k, n, blockRows, blockCols) ;
-
-    MPI_Barrier(MPI_COMM_WORLD) ;
-    double endTime = MPI_Wtime() ;
-
-    return endTime - startTime ;
+    return info.productTime ;
 }
 
 double doSeqTest(Matrix A, Matrix B, Matrix C, int m, int k, int n) {
     double seqStart = MPI_Wtime() ;
-    matrixProduct(A, B, C, m, k, n) ;
+    tileProduct(A, B, C, m, k, n) ;
     double seqEnd = MPI_Wtime() ;
 
     return seqEnd - seqStart ;

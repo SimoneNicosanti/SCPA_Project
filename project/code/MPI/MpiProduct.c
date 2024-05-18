@@ -8,6 +8,7 @@
 #include "Matrix.h"
 #include "SendRecvUtils.h"
 #include "PrintUtils.h"
+#include "MpiProduct.h"
 
 #ifdef OPEN_MP
 #include "OpenMpProduct.h"
@@ -18,8 +19,8 @@
 #define ROOT_PROCESS 0
 #define SEND_TAG 100
 
-#define ROW_BLOCK_SIZE 50
-#define COL_BLOCK_SIZE 50
+#define ROW_BLOCK_SIZE 1
+#define COL_BLOCK_SIZE 1
 
 MPI_Comm WORLD_COMM ;
 MPI_Comm CART_COMM ;
@@ -65,8 +66,9 @@ void gatherFinalMatrix(
 
 void setupEnvironment(int m, int k, int n, int mb, int nb) ;
 
+
 // TODO Gestire errori MPI
-void MpiProduct(Matrix A, Matrix B, Matrix C, int m, int k, int n, int blockRows, int blockCols) {
+void MpiProduct(Matrix A, Matrix B, Matrix C, int m, int k, int n, int blockRows, int blockCols, Info *infoPtr) {
     int mb = ROW_BLOCK_SIZE ;
     int nb = COL_BLOCK_SIZE ;
     if (blockRows > 0) {
@@ -78,21 +80,46 @@ void MpiProduct(Matrix A, Matrix B, Matrix C, int m, int k, int n, int blockRows
     
     setupEnvironment(m, k, n, mb, nb) ;
    
-
     Matrix subA, subB, subC ;
     int subm, subk, subn ;
-    
+
+    if (infoPtr != NULL) {
+        MPI_Barrier(WORLD_COMM) ;
+    }
+    double scatterStart = MPI_Wtime() ;
     scatterMatrix(A, m, k, mb, k, PROCESS_GRID, 1, 0, &subA, &subm, &subk) ;
     scatterMatrix(B, k, n, k, nb, PROCESS_GRID, 0, 1, &subB, &subk, &subn) ;
     scatterMatrix(C, m, n, mb, nb, PROCESS_GRID, 0, 0, &subC, &subm, &subn) ;
+    if (infoPtr != NULL) {
+        MPI_Barrier(WORLD_COMM) ;
+    }
+    double scatterEnd = MPI_Wtime() ;
+
+    if (infoPtr != NULL) {
+        MPI_Barrier(WORLD_COMM) ;
+    }
+    double productStart = MPI_Wtime() ;
 
     #ifdef OPEN_MP
         openMpProduct(subA, subB, subC, subm, subk, subn, mb) ;
     #else
-        matrixProduct(subA, subB, subC, subm, subk, subn) ;
+        tileProduct(subA, subB, subC, subm, subk, subn) ;
     #endif
+
+    if (infoPtr != NULL) {
+        MPI_Barrier(WORLD_COMM) ;
+    }
+    double productEnd = MPI_Wtime() ;
     
+    if (infoPtr != NULL) {
+        MPI_Barrier(WORLD_COMM) ;
+    }
+    double gatherStart = MPI_Wtime() ;
     gatherFinalMatrix(subC, m, n, mb, nb, subm, subn, PROCESS_GRID, C) ;
+    if (infoPtr != NULL) {
+        MPI_Barrier(WORLD_COMM) ;
+    }
+    double gatherEnd = MPI_Wtime() ;
 
     MPI_Comm_free(&WORLD_COMM) ;
     MPI_Comm_free(&CART_COMM) ;
@@ -101,8 +128,17 @@ void MpiProduct(Matrix A, Matrix B, Matrix C, int m, int k, int n, int blockRows
     freeMatrix(subB) ;
     freeMatrix(subC) ;
 
+    if (processInfo.myRank == ROOT_PROCESS && infoPtr != NULL) {
+        infoPtr->scatterTime = gatherEnd - gatherStart ;
+        infoPtr->productTime = productEnd - productStart ;
+        infoPtr->gatherTime = gatherEnd - gatherStart ;
+    }
+
     return ;
 }
+
+
+
 
 void setupEnvironment(int m, int k, int n, int mb, int nb) {
     MPI_Comm_dup(MPI_COMM_WORLD, &WORLD_COMM);
@@ -216,7 +252,8 @@ Matrix matrixRecvFromRoot(
     computeSubMatrixDimsPerProc(rowIndex, colIndex, processGrid, rows, cols, blockRows, blockCols, &subMatRows, &subMatCols) ;
     Matrix subMat = allocMatrix(subMatRows, subMatCols) ;
     MPI_Recv(subMat, subMatRows * subMatCols, TYPE_MATRIX_NUM, ROOT_PROCESS, SEND_TAG, CART_COMM, MPI_STATUS_IGNORE) ;
-    
+
+    //printf("Processo %d > Ricevuto %d %d\n", processInfo.myRank, subMatRows, subMatCols) ;
 
     *subRowsPtr = subMatRows ;
     *subColsPtr = subMatCols ;

@@ -7,6 +7,15 @@
 #define RAND_LOWER_BOUND -100
 #define RAND_UPPER_BOUND 100
 
+#define TILE_SIZE 50 
+
+int min(int a, int b) {
+    if (a < b) {
+        return a ;
+    }
+    return b ;
+}
+
 
 MatrixElemType generateRandomNumber(int min, int max) {
 
@@ -57,6 +66,25 @@ Matrix allocRandomMatrix(int rowsNum, int colsNum) {
 
 void freeMatrix(Matrix matrix) {
     free(matrix) ;
+}
+
+
+void tileProduct(Matrix A, Matrix B, Matrix C, int m, int k, int n) {
+    
+    for (int iTile = 0 ; iTile < m ; iTile = iTile + TILE_SIZE) {
+        for (int tTile = 0 ; tTile < k ; tTile = tTile + TILE_SIZE) {
+            for (int jTile = 0 ; jTile < n ; jTile = jTile + TILE_SIZE) {
+                
+                for (int i = iTile ; i < min(iTile + TILE_SIZE, m) ; i++) {
+                    for (int t = tTile ; t < min(tTile + TILE_SIZE ,k) ; t++) {
+                        for (int j = jTile ; j < min(jTile + TILE_SIZE, n) ; j++) {
+                            C[INDEX(i,j,n)] += A[INDEX(i,t,k)] * B[INDEX(t,j,n)] ;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 

@@ -6,7 +6,7 @@ set(CUSTOM_BUILD_DIR ${CMAKE_SOURCE_DIR}/out)
 
 # Set compilation flags
 add_compile_options(-O3) # Optimization Flag
-# add_compile_options(-march=native) # Optimization Flag
+add_compile_options(-march=native) # Optimization Flag
 # add_compile_options(-ffast-math) # Optimization Flag
 # add_compile_options(-funroll-loops) # Optimization Flag
 

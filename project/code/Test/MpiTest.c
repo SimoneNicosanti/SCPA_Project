@@ -8,7 +8,7 @@
 #include "ResultWriter.h"
 
 #define MAX_ATT 3
-#define MAX_PROB_DIM 6001
+#define MAX_PROB_DIM 5001
 #define MAX_SEQ_DIM 2001
 #define START_PROB_DIM 250
 #define SIZE_INCREMENT 250
@@ -124,27 +124,24 @@ void main(int argc, char *argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
     MPI_Comm_size(MPI_COMM_WORLD, &procNum);
     
-    rectangularTests(procNum, myRank) ;
+    srand(987654) ;
+    //rectangularTests(procNum, myRank) ;
     squareTests(procNum, myRank) ;
     
     MPI_Finalize() ;
 }
 
+// TODO Change -> Make return Info
 double doParTest(Matrix A, Matrix B, Matrix C, int m, int k, int n) {
-    MPI_Barrier(MPI_COMM_WORLD) ;
-    double startTime = MPI_Wtime() ;
+    Info info ;
+    MpiProduct(A, B, C, m, k, n, 0, 0, &info) ;
 
-    MpiProduct(A, B, C, m, k, n, 0, 0) ;
-
-    MPI_Barrier(MPI_COMM_WORLD) ;
-    double endTime = MPI_Wtime() ;
-
-    return endTime - startTime ;
+    return info.productTime ;
 }
 
 double doSeqTest(Matrix A, Matrix B, Matrix C, int m, int k, int n) {
     double seqStart = MPI_Wtime() ;
-    matrixProduct(A, B, C, m, k, n) ;
+    tileProduct(A, B, C, m, k, n) ;
     double seqEnd = MPI_Wtime() ;
 
     return seqEnd - seqStart ;

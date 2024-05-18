@@ -19,14 +19,14 @@ def squareTest(folder : str, case : str) :
 
     plt.figure(figsize = (15, 5), clear = True, layout = "tight")
     for procNum in gflopsDataSet["ProcessNum"].unique() :
-        subDataSet = gflopsDataSet[gflopsDataSet["ProcessNum"] == procNum]
+        subDataSet = gflopsDataSet[(gflopsDataSet["ProcessNum"] == procNum)]
         plt.plot(subDataSet["K"], subDataSet["GFLOPS"], marker = "o", label = f"Process Num = {procNum}")
     plt.xticks(gflopsDataSet["K"].unique(), rotation = 30)
     plt.legend()
     plt.grid()
     plt.xlabel("K")
     plt.ylabel("GFLOPS")
-    plt.title("GFLOPS Trend - Square Case")
+    plt.title(f"{folder} - GFLOPS Trend - {case} Case")
     plt.savefig(f"../{folder}/Charts/{folder}_GFLOPS_{case}_Chart.png")
     plt.clf()
 
@@ -53,7 +53,8 @@ def rectangularTest(folder : str, case : str) :
     plt.xlabel("K")
     plt.ylabel("GFLOPS")
     mValue = gflopsDataSet["M"].values[0]
-    plt.title(f"GFLOPS Trend - Rectangular Case - Fixed Dimension {mValue}")
+    plt.title(f"{folder} - GFLOPS Trend - {case} Case")
+    plt.title(f"{folder} - GFLOPS Trend - Rectangular Case - Fixed Dimension {mValue}")
     plt.savefig(f"../{folder}/Charts/{folder}_GFLOPS_{case}_Chart.png")
     plt.clf()
 
