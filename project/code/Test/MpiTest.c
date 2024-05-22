@@ -27,13 +27,7 @@ void squareTests(int procNum, int myRank) {
         if (myRank == 0) {
             printf("#Processi %d > TEST CON (%d, %d, %d)\n", procNum, probDim, probDim, probDim) ;
         }
-        char *outputPath ;
-        #ifdef OPEN_MP
-        outputPath = "../Results/OpenMpi/Tests/OpenMpi_Square_Test.csv" ;
-        #else
-        outputPath = "../Results/MPI/Tests/MPI_Square_Test.csv" ;
-        #endif
-
+        char *outputPath = "../Results/MPI/Tests/MPI_Square_Test.csv" ;
         testProducts(myRank, procNum, probDim, probDim, probDim, outputPath) ;
     }
 }
@@ -52,13 +46,7 @@ void rectangularTests(int procNum, int myRank) {
             printf("#Processi %d > TEST CON (%d, %d, %d)\n", procNum, otherSizes, k, otherSizes) ;
         }
 
-        char *outputPath ;
-        #ifdef OPEN_MP
-        outputPath = "../Results/OpenMpi/Tests/OpenMpi_Rect_Test.csv" ;
-        #else
-        outputPath = "../Results/MPI/Tests/MPI_Rect_Test.csv" ;
-        #endif
-
+        char *outputPath = "../Results/MPI/Tests/MPI_Rect_Test.csv" ;
         testProducts(myRank, procNum, otherSizes, k, otherSizes, outputPath) ;
     }
 }
@@ -125,8 +113,8 @@ void main(int argc, char *argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &procNum);
     
     srand(987654) ;
-    //rectangularTests(procNum, myRank) ;
     squareTests(procNum, myRank) ;
+    rectangularTests(procNum, myRank) ;
     
     MPI_Finalize() ;
 }

@@ -10,10 +10,6 @@
 #include "PrintUtils.h"
 #include "MpiProduct.h"
 
-#ifdef OPEN_MP
-#include "OpenMpProduct.h"
-#endif
-
 #define PROCESS_GRID_DIMS 2
 #define TYPE_MATRIX_NUM MPI_FLOAT
 #define ROOT_PROCESS 0
@@ -99,13 +95,7 @@ void MpiProduct(Matrix A, Matrix B, Matrix C, int m, int k, int n, int blockRows
         MPI_Barrier(WORLD_COMM) ;
     }
     double productStart = MPI_Wtime() ;
-
-    #ifdef OPEN_MP
-        openMpProduct(subA, subB, subC, subm, subk, subn, mb) ;
-    #else
-        tileProduct(subA, subB, subC, subm, subk, subn) ;
-    #endif
-
+    tileProduct(subA, subB, subC, subm, subk, subn) ;
     if (infoPtr != NULL) {
         MPI_Barrier(WORLD_COMM) ;
     }
@@ -128,16 +118,13 @@ void MpiProduct(Matrix A, Matrix B, Matrix C, int m, int k, int n, int blockRows
     freeMatrix(subB) ;
     freeMatrix(subC) ;
 
-    if (processInfo.myRank == ROOT_PROCESS && infoPtr != NULL) {
-        infoPtr->scatterTime = gatherEnd - gatherStart ;
-        infoPtr->productTime = productEnd - productStart ;
-        infoPtr->gatherTime = gatherEnd - gatherStart ;
-    }
+    // Return times in info structs
+    infoPtr->scatterTime = scatterEnd - scatterStart ;
+    infoPtr->productTime = productEnd - productStart ;
+    infoPtr->gatherTime = gatherEnd - gatherStart ;
 
     return ;
 }
-
-
 
 
 void setupEnvironment(int m, int k, int n, int mb, int nb) {
@@ -153,6 +140,7 @@ void setupEnvironment(int m, int k, int n, int mb, int nb) {
 
     MPI_Cart_coords(CART_COMM, processInfo.myRank, 2, &processInfo.myCoords) ;
 }
+
 
 void scatterMatrix(
     Matrix matrix, 
@@ -259,6 +247,7 @@ Matrix matrixRecvFromRoot(
     *subColsPtr = subMatCols ;
     return subMat ;
 }
+
 
 Matrix matrixSendToAll(
     Matrix matrix, 
