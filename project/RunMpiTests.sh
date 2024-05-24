@@ -2,15 +2,18 @@
 module load mpi
 
 # Creating result directory structure
-mkdir ../Results
-mkdir ../Results/MPI
-mkdir ../Results/MPI/Tests
+mkdir ./Results
+mkdir ./Results/MPI
+mkdir ./Results/MPI/Tests
 
 # Clearing previous tests
-rm ../Results/MPI/Tests/*
+rm ./Results/MPI/Tests/*
 
 # Compiling
 ./CMakeCaller.sh
+
+# Changing directory to out
+cd ./out
 
 # MPI Tests
 mpiexec -np 4 ./MpiTest.out
