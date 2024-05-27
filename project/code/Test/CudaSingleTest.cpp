@@ -61,12 +61,12 @@ int main(int argc, char *argv[]) {
     printf("GPU Time >>> %f\n", info.productTime) ;
     printf("CPU Time >>> %f\n", seqTime) ;
 
-    Content cont ;
-    cont.matrix = seqC ;
-    printMessage("SEQ MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
+    // Content cont ;
+    // cont.matrix = seqC ;
+    // printMessage("SEQ MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
 
-    cont.matrix = parC ;
-    printMessage("PAR MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
+    // cont.matrix = parC ;
+    // printMessage("PAR MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
 
     free(A) ;
     free(B) ;

@@ -12,7 +12,7 @@ extern "C" {
 #define DEF_MB 50
 #define DEF_NB 50
 
-const dim3 BLOCK_DIM(32, 32) ;
+const dim3 BLOCK_DIM(16, 8) ;
 
 void moveMatricesFromHostToDevice(Matrix hostMatrix, Matrix *devMatrix, int rows, int cols, size_t *pitchPtr) ;
 
@@ -20,40 +20,38 @@ void moveMatricesFromHostToDevice(Matrix hostMatrix, Matrix *devMatrix, int rows
 __global__ void gpuProduct(Matrix A, Matrix B, Matrix C, int m, int k , int n, int pitchA, int pitchB, int pitchC) {
 
     int row = threadIdx.y + blockIdx.y * blockDim.y ;
+    //int col = threadIdx.x + blockIdx.x * blockDim.x ;
+
     __shared__ MatrixElemType subCalc[BLOCK_DIM.y][BLOCK_DIM.x] ;
 
     subCalc[threadIdx.y][threadIdx.x] = 0.0 ;
 
-    for (int col = 0 ; col < n ; col++) {
-        if (row < m) {
-            float subProd = 0.0 ;
-            for (int idx = threadIdx.x ; idx < k ; idx += blockDim.x) {
-                subProd += A[INDEX(row, idx, m + pitchA)] * B[INDEX(idx, col, n + pitchB)] ;
-            }
-            subCalc[threadIdx.y][threadIdx.x] = subProd ;
+    int col = blockIdx.x ;
+    
+    if (row < m) {
+        float subProd = 0.0 ;
+        for (int idx = threadIdx.x ; idx < k ; idx += blockDim.x) {
+            subProd += A[INDEX(row, idx, m)] * B[INDEX(idx, col, n)] ;
         }
+        subCalc[threadIdx.y][threadIdx.x] = subProd ;
+    }
 
+    __syncthreads() ;
+
+    for (unsigned int s = (blockDim.x >> 1) ; s > 0 ; s >>= 1) {
+        if (threadIdx.x < s) {
+            subCalc[threadIdx.y][threadIdx.x] += subCalc[threadIdx.y][threadIdx.x + s] ;
+        }
         __syncthreads() ;
+    }
 
-        for (unsigned int s = (blockDim.x >> 1) ; s > 0 ; s >>= 1) {
-            if (threadIdx.x < s) {
-                subCalc[threadIdx.y][threadIdx.x] += subCalc[threadIdx.y][threadIdx.x + s] ;
-            }
-            __syncthreads() ;
-        }
-
-        if (threadIdx.x == 0 && row < m) {
-            C[INDEX(row, col, n + pitchC)] += subCalc[threadIdx.y][threadIdx.x] ;
-        }
-
-        __syncthreads() ;
+    if (threadIdx.x == 0 && row < m) {
+        C[INDEX(row, col, n)] += subCalc[threadIdx.y][threadIdx.x] ;
     }
     
 }
 
 
-
-// TODO CHECK FOR CUDA ERRORS
 void CudaProduct(Matrix hostA, Matrix hostB, Matrix hostC, int m, int k, int n, int mb, int nb, Info *infoPtr) {
 
     if (mb <= 0) {
@@ -69,7 +67,7 @@ void CudaProduct(Matrix hostA, Matrix hostB, Matrix hostC, int m, int k, int n, 
     moveMatricesFromHostToDevice(hostB, &devB, k, n, &pitchB) ;
     moveMatricesFromHostToDevice(hostC, &devC, m, n, &pitchC) ;
 
-    dim3 gridDim(1, ((m - 1) / BLOCK_DIM.y) + 1) ;
+    dim3 gridDim(n, ((m - 1) / BLOCK_DIM.y) + 1) ;
 
     StopWatchInterface* timer = 0;
     sdkCreateTimer(&timer);
