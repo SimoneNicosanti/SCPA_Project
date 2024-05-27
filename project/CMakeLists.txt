@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.0)
 project(SCPA_Project)
 
+enable_language(C)
+enable_language(CUDA)
+enable_language(CXX)
+
 # Set a custom build directory
 set(CUSTOM_BUILD_DIR ${CMAKE_SOURCE_DIR}/out)
 
@@ -15,7 +19,12 @@ add_compile_options(-march=native) # Optimization Flag
 
 # Find MPI and OpenMP Packages
 find_package(MPI REQUIRED)
+find_package(CUDA REQUIRED)
 include_directories(SYSTEM ${MPI_INCLUDE_PATH})
+# set(CMAKE_CPP_COMPILER /usr/bin/g++)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
 
 
 ## Target for Matrix utility
@@ -51,6 +60,20 @@ target_link_libraries(MpiProduct
     PRIVATE ${MPI_C_LIBRARIES}
 )
 
+## Targer for CUDA Utility
+file(GLOB CudaProduct_Src code/CUDA/*)
+add_library(CudaProduct 
+    ${CudaProduct_Src}
+)
+target_include_directories(CudaProduct
+    PUBLIC code/CUDA
+)
+target_link_libraries(CudaProduct 
+    PRIVATE Matrix
+)
+set_target_properties(CudaProduct PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON)
+
 
 ## Target for Test utility
 file(GLOB Test_Src code/Test/ResultWriter.*)
@@ -85,12 +108,20 @@ target_link_libraries(MpiSingleTest.out
     PRIVATE ${MPI_CXX_LIBRARIES}
 )
 
-# ## CUDA
-# add_executable(cudaExecutable code/CUDA/main.c)
-# target_link_libraries(cudaExecutable 
-#     PRIVATE Matrix
-#     PRIVATE Test
-# )
+
+
+## CUDA Executables
+add_executable(CudaSingleTest.out
+    code/Test/CudaSingleTest.cpp
+)
+target_link_libraries(CudaSingleTest.out 
+    PRIVATE Matrix
+    PRIVATE CudaProduct
+    PRIVATE Test
+    PRIVATE Utils
+    PRIVATE ${MPI_CXX_LIBRARIES}
+)
+
 
 
 
@@ -101,5 +132,9 @@ set_target_properties(MpiTest.out  PROPERTIES
 )
 
 set_target_properties(MpiSingleTest.out  PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CUSTOM_BUILD_DIR}
+)
+
+set_target_properties(CudaSingleTest.out  PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CUSTOM_BUILD_DIR}
 )

@@ -8,7 +8,7 @@
                 "${workspaceFolder}/project/code/Matrix",
                 "${workspaceFolder}/project/code/MPI",
                 "${workspaceFolder}/project/code/Utils",
-                "${workspaceFolder}/project/code/OpenMp"
+                "${workspaceFolder}/project/code/CUDA"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

@@ -17,4 +17,7 @@ typedef union Content
     float real ;
 } Content ;
 
+#ifdef __cplusplus
+extern "C"
+#endif
 void printMessage(char *header, Content content, MESSAGE_TYPE type, int rank, int printerProcRank, int firstDimLen, int secDimLen, int newLine) ;

@@ -9,6 +9,7 @@
         "vector": "c",
         "string_view": "c",
         "initializer_list": "c",
-        "openmpproduct.h": "c"
+        "openmpproduct.h": "c",
+        "cudaproduct.h": "c"
     },
 }

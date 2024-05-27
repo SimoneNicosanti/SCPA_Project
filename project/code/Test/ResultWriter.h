@@ -12,4 +12,7 @@ typedef struct TestResult {
     double gFLOPS ;
 } TestResult ;
 
+#ifdef __cplusplus
+extern "C"
+#endif
 void writeTestResult(char *fileName, TestResult *testResult) ;

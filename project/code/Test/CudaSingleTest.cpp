@@ -1,59 +1,81 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <helper_functions.h>
+
+#include "CudaProduct.h"
+#include "PrintUtils.h"
+
+
 #include "Matrix.h"
 #include "ResultWriter.h"
 
-// Includes CUDA
-#include <cuda_runtime.h>
 
-// // Utilities and timing functions
-// #include <helper_functions.h>  // includes cuda.h and cuda_runtime_api.h
-
-// // CUDA helper functions
-// #include <helper_cuda.h>  // helper functions for CUDA error check
 
 int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *blockRowsPtr, int *blockColsPtr) ;
-void moveMatricesFromHostToDevice(Matrix hostMatrix, Matrix devMatrix, int rows, int cols, size_t *pitchPtr) ;
 
 
-// TODO CHECK FOR CUDA ERRORS
-void main(int argc, char *argv[]) {
-
+int main(int argc, char *argv[]) {
     int m, k, n, blockRows = 0, blockCols = 0 ;
     extractParams(argc, argv, &m, &k, &n, &blockRows, &blockCols) ;
-
     Matrix A = allocRandomMatrix(m, k) ; // TODO Check if can change with cudaHostAllocMapped --> Need to change the allocations
     Matrix B = allocRandomMatrix(k, n) ;
     Matrix C = allocRandomMatrix(m, n) ;
 
-    Matrix devA, devB, devC ;
-    size_t pitchA, pitchB, pitchC ;
-    moveMatricesFromHostToDevice(A, devA, m, k, &pitchA) ;
-    moveMatricesFromHostToDevice(B, devB, k, n, &pitchB) ;
-    moveMatricesFromHostToDevice(C, devC, m, n, &pitchC) ;
+    for (int i = 0 ; i < m ; i++) {
+        for (int j = 0 ; j < k ; j++) {
+            A[INDEX(i,j,k)] = i*k + j ;
+        }
+    }
+    for (int i = 0 ; i < k ; i++) {
+        for (int j = 0 ; j < n ; j++) {
+            B[INDEX(i,j,n)] = i*n + j ;
+        }
+    }
+    for (int i = 0 ; i < m ; i++) {
+        for (int j = 0 ; j < n ; j++) {
+            C[INDEX(i,j,n)] = i*n + j ;
+        }
+    }
 
-    /*
-        3. Call Cuda multiplication
-        4. Meanwhile, if needed, do sequential multiplication
-        5. Take times and stuff
-        6. Check relative error if needed
-    */
+    Matrix parC = allocMatrix(m, n) ;
+    memcpy(parC, C, sizeof(MatrixElemType) * m * n) ;
 
-    cudaFree(devA) ;
-    cudaFree(devB) ;
-    cudaFree(devC) ;
+    Matrix seqC = allocMatrix(m, n) ;
+    memcpy(seqC, C, sizeof(MatrixElemType) * m * n) ;
+
+    Info info ;
+    CudaProduct(A, B, parC, m, k, n, blockRows, blockCols, &info) ;
+
+    StopWatchInterface* timer = 0;
+    sdkCreateTimer(&timer);
+
+    timer->start();
+    matrixProduct(A, B, seqC, m, k, n) ;
+    timer->stop();
+
+    float seqTime = timer->getTime() ;
+    double relErr = computeRelativeError(seqC, parC, m, n) ;
+
+    printf("Relative Error >>> %f\n", relErr) ;
+    printf("GPU Time >>> %f\n", info.productTime) ;
+    printf("CPU Time >>> %f\n", seqTime) ;
+
+    Content cont ;
+    cont.matrix = seqC ;
+    printMessage("SEQ MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
+
+    cont.matrix = parC ;
+    printMessage("PAR MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
 
     free(A) ;
     free(B) ;
     free(C) ;
+
+    return 0 ;
 }
 
-void moveMatricesFromHostToDevice(Matrix hostMatrix, Matrix devMatrix, int rows, int cols, size_t *pitchPtr) {
-    cudaHostRegister(hostMatrix, sizeof(MatrixElemType) * rows * cols, cudaHostRegisterDefault) ;
-    cudaMallocPitch((void **) &devMatrix, pitchPtr, sizeof(MatrixElemType) * cols, rows) ;
 
-    // TODO Check first sizeof(MatrixElemType) * cols
-    cudaMemcpy2D(devMatrix, *pitchPtr, hostMatrix, sizeof(MatrixElemType) * cols, sizeof(MatrixElemType) * cols, rows, cudaMemcpyHostToDevice) ;
-    *pitchPtr = *pitchPtr / sizeof(MatrixElemType) ;
-}
 
 int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *blockRowsPtr, int *blockColsPtr) {
     
