@@ -16,33 +16,28 @@ void moveMatricesFromHostToDevice(Matrix hostMatrix, Matrix *devMatrix, int rows
 
 __global__ void gpuProduct(Matrix A, Matrix B, Matrix C, int m, int k , int n, int pitchA, int pitchB, int pitchC) {
 
-    int row = threadIdx.y + blockIdx.y * blockDim.y ;
-    //int col = threadIdx.x + blockIdx.x * blockDim.x ;
+    __shared__ MatrixElemType subA[BLOCK_DIM.y][BLOCK_DIM.x] ;
+    __shared__ MatrixElemType subB[BLOCK_DIM.x][BLOCK_DIM.y] ;
 
-    __shared__ MatrixElemType subCalc[BLOCK_DIM.y][BLOCK_DIM.x] ;
-    subCalc[threadIdx.y][threadIdx.x] = 0.0 ;
+    float subCElem = 0.0 ;
+    
+    int rowA = threadIdx.y + blockIdx.y * blockDim.y ;
+    int colB = threadIdx.x + blockIdx.x * blockDim.x ;
 
-    for (int col = blockIdx.x ; col < n ; col += gridDim.x) {
-        if (row < m) {
-            float subProd = 0.0 ;
-            for (int idx = threadIdx.x ; idx < k ; idx += blockDim.x) {
-                subProd += A[INDEX(row, idx, pitchA)] * B[INDEX(idx, col, pitchB)] ;
+    if (rowA < m && colB < n) {
+        for (int kIndex = threadIdx.x ; kIndex < k ; kIndex += blockDim.x) {
+            subA[threadIdx.y][threadIdx.x] = A[INDEX(rowA, kIndex, pitchA)] ;
+            subB[threadIdx.x][threadIdx.y] = B[INDEX(kIndex, colB, pitchB)] ;
+
+            __syncthreads() ;
+
+            for (int i = 0 ; i < min(k - kIndex, blockDim.x) ; i++) {
+                subCElem += subA[threadIdx.y][i] * subB[i][threadIdx.y] ;
             }
-            subCalc[threadIdx.y][threadIdx.x] = subProd ;
-        }
-
-        __syncthreads() ;
-
-        for (unsigned int s = (blockDim.x >> 1) ; s > 0 ; s >>= 1) {
-            if (threadIdx.x < s) {
-                subCalc[threadIdx.y][threadIdx.x] += subCalc[threadIdx.y][threadIdx.x + s] ;
-            }
+            
             __syncthreads() ;
         }
-
-        if (threadIdx.x == 0 && row < m) {
-            C[INDEX(row, col, pitchC)] += subCalc[threadIdx.y][threadIdx.x] ;
-        }
+        C[INDEX(rowA, colB, pitchC)] = subCElem ;
     }
     
 }
