@@ -3,10 +3,7 @@
 #include <helper_functions.h>
 #include <helper_cuda.h>
 
-extern "C" {
-    #include "Matrix.h"
-}
-
+#include "Matrix.h"
 #include "CudaProduct.h"
 
 #define DEF_MB 50
@@ -23,30 +20,29 @@ __global__ void gpuProduct(Matrix A, Matrix B, Matrix C, int m, int k , int n, i
     //int col = threadIdx.x + blockIdx.x * blockDim.x ;
 
     __shared__ MatrixElemType subCalc[BLOCK_DIM.y][BLOCK_DIM.x] ;
-
     subCalc[threadIdx.y][threadIdx.x] = 0.0 ;
 
-    int col = blockIdx.x ;
-    
-    if (row < m) {
-        float subProd = 0.0 ;
-        for (int idx = threadIdx.x ; idx < k ; idx += blockDim.x) {
-            subProd += A[INDEX(row, idx, m)] * B[INDEX(idx, col, n)] ;
+    for (int col = blockIdx.x ; col < n ; col += gridDim.x) {
+        if (row < m) {
+            float subProd = 0.0 ;
+            for (int idx = threadIdx.x ; idx < k ; idx += blockDim.x) {
+                subProd += A[INDEX(row, idx, pitchA)] * B[INDEX(idx, col, pitchB)] ;
+            }
+            subCalc[threadIdx.y][threadIdx.x] = subProd ;
         }
-        subCalc[threadIdx.y][threadIdx.x] = subProd ;
-    }
 
-    __syncthreads() ;
-
-    for (unsigned int s = (blockDim.x >> 1) ; s > 0 ; s >>= 1) {
-        if (threadIdx.x < s) {
-            subCalc[threadIdx.y][threadIdx.x] += subCalc[threadIdx.y][threadIdx.x + s] ;
-        }
         __syncthreads() ;
-    }
 
-    if (threadIdx.x == 0 && row < m) {
-        C[INDEX(row, col, n)] += subCalc[threadIdx.y][threadIdx.x] ;
+        for (unsigned int s = (blockDim.x >> 1) ; s > 0 ; s >>= 1) {
+            if (threadIdx.x < s) {
+                subCalc[threadIdx.y][threadIdx.x] += subCalc[threadIdx.y][threadIdx.x + s] ;
+            }
+            __syncthreads() ;
+        }
+
+        if (threadIdx.x == 0 && row < m) {
+            C[INDEX(row, col, pitchC)] += subCalc[threadIdx.y][threadIdx.x] ;
+        }
     }
     
 }
@@ -67,24 +63,24 @@ void CudaProduct(Matrix hostA, Matrix hostB, Matrix hostC, int m, int k, int n, 
     moveMatricesFromHostToDevice(hostB, &devB, k, n, &pitchB) ;
     moveMatricesFromHostToDevice(hostC, &devC, m, n, &pitchC) ;
 
-    dim3 gridDim(n, ((m - 1) / BLOCK_DIM.y) + 1) ;
+    dim3 GRID_DIM(((n - 1) / BLOCK_DIM.x) + 1, ((m - 1) / BLOCK_DIM.y) + 1) ;
 
     StopWatchInterface* timer = 0;
     sdkCreateTimer(&timer);
 
     timer->start();
-    gpuProduct<<<gridDim, BLOCK_DIM>>>(devA, devB, devC, m, k, n, pitchA, pitchB, pitchC);
+    gpuProduct<<<GRID_DIM, BLOCK_DIM>>>(devA, devB, devC, m, k, n, pitchA, pitchB, pitchC);
     checkCudaErrors(cudaDeviceSynchronize());
     timer->stop();
     
     infoPtr->productTime = timer->getTime() ;
 
-    // checkCudaErrors(
-    //     cudaMemcpy2D(hostC, sizeof(MatrixElemType) * m, devC, pitchC, sizeof(MatrixElemType) * m, n, cudaMemcpyDeviceToHost)
-    // ) ;
     checkCudaErrors(
-        cudaMemcpy(hostC, devC, sizeof(MatrixElemType) * m * n, cudaMemcpyDeviceToHost) 
+        cudaMemcpy2D(hostC, sizeof(MatrixElemType) * m, devC, pitchC * sizeof(MatrixElemType), sizeof(MatrixElemType) * m, n, cudaMemcpyDeviceToHost)
     ) ;
+    // checkCudaErrors(
+    //     cudaMemcpy(hostC, devC, sizeof(MatrixElemType) * m * n, cudaMemcpyDeviceToHost) 
+    // ) ;
 
     cudaFree(devA) ;
     cudaFree(devB) ;
@@ -97,19 +93,19 @@ void moveMatricesFromHostToDevice(Matrix hostMatrix, Matrix *devMatrixPtr, int r
     checkCudaErrors(
         cudaHostRegister(hostMatrix, sizeof(MatrixElemType) * rows * cols, cudaHostRegisterDefault)
     ) ;
-    // checkCudaErrors(
-    //     cudaMallocPitch((void **) devMatrixPtr, pitchPtr, sizeof(MatrixElemType) * cols, rows)
-    // ) ;
     checkCudaErrors(
-        cudaMalloc((void **) devMatrixPtr, sizeof(MatrixElemType) * rows * cols)
+        cudaMallocPitch((void **) devMatrixPtr, pitchPtr, sizeof(MatrixElemType) * cols, rows)
     ) ;
+    // checkCudaErrors(
+    //     cudaMalloc((void **) devMatrixPtr, sizeof(MatrixElemType) * rows * cols)
+    // ) ;
 
-    // checkCudaErrors(
-    //     cudaMemcpy2D(*devMatrixPtr, *pitchPtr, hostMatrix, sizeof(MatrixElemType) * cols, sizeof(MatrixElemType) * cols, rows, cudaMemcpyHostToDevice)
-    // ) ;
     checkCudaErrors(
-        cudaMemcpy(*devMatrixPtr, hostMatrix, sizeof(MatrixElemType) * rows * cols, cudaMemcpyHostToDevice) 
+        cudaMemcpy2D(*devMatrixPtr, *pitchPtr, hostMatrix, sizeof(MatrixElemType) * cols, sizeof(MatrixElemType) * cols, rows, cudaMemcpyHostToDevice)
     ) ;
-    // *pitchPtr = *pitchPtr / sizeof(MatrixElemType) ;
-    *pitchPtr = 0 ;
+    // checkCudaErrors(
+    //     cudaMemcpy(*devMatrixPtr, hostMatrix, sizeof(MatrixElemType) * rows * cols, cudaMemcpyHostToDevice) 
+    // ) ;
+    *pitchPtr = *pitchPtr / sizeof(MatrixElemType) ;
+    //*pitchPtr = 0 ;
 }

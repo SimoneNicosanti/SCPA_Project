@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 #include "Matrix.h"
 
 
@@ -34,16 +35,12 @@ Matrix allocMatrix(int rowsNum, int colsNum) {
     if (matrixData == NULL) {
         return NULL ;
     }
-
-    // float **matrix = malloc(rowsNum * sizeof(float *));
-    // if (matrix == NULL) {
-    //     return NULL ;
-    // }
-
-    // for (int i = 0 ; i < rowsNum ; i++)
-    //     matrix[i] = &(matrixData[i * colsNum]);
     
     return matrixData;
+}
+
+void copyMatrix(Matrix dstMat, Matrix srcMat, int rows, int cols) {
+    memcpy(dstMat, srcMat, sizeof(MatrixElemType) * rows * cols) ;
 }
 
 

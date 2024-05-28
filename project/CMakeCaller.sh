@@ -1,3 +1,6 @@
+module load mpi
+module load cuda
+
 # Removing previous output files (including error files)
 rm ./out/*.out*
 

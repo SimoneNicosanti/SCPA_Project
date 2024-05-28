@@ -122,6 +122,17 @@ target_link_libraries(CudaSingleTest.out
     PRIVATE ${MPI_CXX_LIBRARIES}
 )
 
+add_executable(CudaTest.out
+    code/Test/CudaTest.cpp
+)
+target_link_libraries(CudaTest.out 
+    PRIVATE Matrix
+    PRIVATE CudaProduct
+    PRIVATE Test
+    PRIVATE Utils
+    PRIVATE ${MPI_CXX_LIBRARIES}
+)
+
 
 
 
@@ -136,5 +147,9 @@ set_target_properties(MpiSingleTest.out  PROPERTIES
 )
 
 set_target_properties(CudaSingleTest.out  PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CUSTOM_BUILD_DIR}
+)
+
+set_target_properties(CudaTest.out  PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CUSTOM_BUILD_DIR}
 )

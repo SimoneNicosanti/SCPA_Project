@@ -39,10 +39,10 @@ int main(int argc, char *argv[]) {
     }
 
     Matrix parC = allocMatrix(m, n) ;
-    memcpy(parC, C, sizeof(MatrixElemType) * m * n) ;
+    copyMatrix(parC, C, m, n) ;
 
     Matrix seqC = allocMatrix(m, n) ;
-    memcpy(seqC, C, sizeof(MatrixElemType) * m * n) ;
+    copyMatrix(seqC, C, m, n) ;
 
     Info info ;
     CudaProduct(A, B, parC, m, k, n, blockRows, blockCols, &info) ;

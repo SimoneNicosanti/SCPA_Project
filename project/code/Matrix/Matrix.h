@@ -34,3 +34,8 @@ void freeMatrix(Matrix matrix) ;
 extern "C"
 #endif
 double computeRelativeError(Matrix A, Matrix B, int m, int n) ;
+
+#ifdef __cplusplus
+extern "C"
+#endif
+void copyMatrix(Matrix dstMat, Matrix srcMat, int rows, int cols) ;

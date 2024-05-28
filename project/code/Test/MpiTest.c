@@ -73,8 +73,8 @@ void testProducts(int myRank, int procNum, int m, int k, int n, char *resultFile
 
         // Have to copy in two different C matrices as the result is overwritten
         if (myRank == 0) {
-            memcpy(parC, C, sizeof(MatrixElemType) * m * n) ;
-            memcpy(seqC, C, sizeof(MatrixElemType) * m * n) ;
+            copyMatrix(parC, C, m, n) ;
+            copyMatrix(seqC, C, m, n) ;
         }
 
         testResult.parallelTime = doParTest(A, B, parC, m, k, n) ;

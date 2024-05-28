@@ -59,8 +59,8 @@ void main(int argc, char *argv[]) {
     }
 
     if (myRank == 0) {
-        memcpy(parC, C, sizeof(MatrixElemType) * m * n) ;
-        memcpy(seqC, C, sizeof(MatrixElemType) * m * n) ;
+        copyMatrix(parC, C, m, n) ;
+        copyMatrix(seqC, C, m, n) ;
     }
 
     parTime = doParTest(A, B, parC, m, k, n, blockRows, blockCols) ;
