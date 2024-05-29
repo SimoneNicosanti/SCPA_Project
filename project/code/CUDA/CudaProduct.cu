@@ -9,7 +9,7 @@
 #define DEF_MB 50
 #define DEF_NB 50
 
-const dim3 BLOCK_DIM(16, 8) ;
+const int BLOCK_SIZE = 32 ;
 const int K_BLOCK_LEN = 32 ;
 
 void moveMatricesFromHostToDevice(Matrix hostMatrix, Matrix *devMatrix, int rows, int cols, size_t *pitchPtr) ;
@@ -17,30 +17,19 @@ void moveMatricesFromHostToDevice(Matrix hostMatrix, Matrix *devMatrix, int rows
 
 __global__ void gpuProduct(Matrix A, Matrix B, Matrix C, int m, int k , int n, int pitchA, int pitchB, int pitchC) {
 
-    __shared__ MatrixElemType subA[BLOCK_DIM.y][K_BLOCK_LEN] ;
-    __shared__ MatrixElemType subB[K_BLOCK_LEN][BLOCK_DIM.x] ;
+    int thrY = threadIdx.x / BLOCK_SIZE ;
+    int thrX = threadIdx.x % BLOCK_SIZE ;
 
-    float subCElem = 0.0 ;
-    
-    int rowA = threadIdx.y + blockIdx.y * blockDim.y ;
-    int colB = threadIdx.x + blockIdx.x * blockDim.x ;
+    int row = thrY + BLOCK_SIZE * blockIdx.y ;
+    int col = thrX + BLOCK_SIZE * blockIdx.x ;
 
-    if (rowA < m && colB < n) {
-        for (int kMult = 0 ; kMult < (k / K_BLOCK_LEN) + 1 ; kMult++) {
+    MatrixElemType cAcc = 0.0 ;
 
-            for (int kLocIdx = 0 ; kLocIdx < min(k - K_BLOCK_LEN * kMult, K_BLOCK_LEN) ; kLocIdx++) {
-                int kGlobIdx = kMult * K_BLOCK_LEN + kLocIdx ;
-                subA[threadIdx.y][kLocIdx] = A[INDEX(rowA, kGlobIdx , pitchA)] ;
-                subB[kLocIdx][threadIdx.x] = B[INDEX(kGlobIdx, colB, pitchB)] ;
-            }
-
-            for (int i = 0 ; i < min(k - K_BLOCK_LEN * kMult, K_BLOCK_LEN) ; i++) {
-                subCElem += subA[threadIdx.y][i] * subB[i][threadIdx.x] ;
-            }
-            __syncthreads() ;
+    if (row < m && col < n) {
+        for (int kIdx = 0 ; kIdx < k ; kIdx++) {
+            cAcc += A[INDEX(row, kIdx, pitchA)] * B[INDEX(kIdx, col, pitchB)] ;
         }
-        C[INDEX(rowA, colB, pitchC)] += subCElem ;
-        
+        C[INDEX(row, col, pitchC)] += cAcc ;
     }
     
 }
@@ -61,7 +50,8 @@ void CudaProduct(Matrix hostA, Matrix hostB, Matrix hostC, int m, int k, int n, 
     moveMatricesFromHostToDevice(hostB, &devB, k, n, &pitchB) ;
     moveMatricesFromHostToDevice(hostC, &devC, m, n, &pitchC) ;
 
-    dim3 GRID_DIM(((n - 1) / BLOCK_DIM.x) + 1, ((m - 1) / BLOCK_DIM.y) + 1) ;
+    dim3 BLOCK_DIM(BLOCK_SIZE * BLOCK_SIZE) ;
+    dim3 GRID_DIM(((n - 1) / BLOCK_SIZE) + 1, ((m - 1) / BLOCK_SIZE) + 1) ;
 
     StopWatchInterface* timer = 0;
     sdkCreateTimer(&timer);
