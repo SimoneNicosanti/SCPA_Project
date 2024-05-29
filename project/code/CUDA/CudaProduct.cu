@@ -10,14 +10,15 @@
 #define DEF_NB 50
 
 const dim3 BLOCK_DIM(16, 8) ;
+const int K_BLOCK_LEN = 32 ;
 
 void moveMatricesFromHostToDevice(Matrix hostMatrix, Matrix *devMatrix, int rows, int cols, size_t *pitchPtr) ;
 
 
 __global__ void gpuProduct(Matrix A, Matrix B, Matrix C, int m, int k , int n, int pitchA, int pitchB, int pitchC) {
 
-    __shared__ MatrixElemType subA[BLOCK_DIM.y][32] ;
-    __shared__ MatrixElemType subB[32][BLOCK_DIM.x] ;
+    __shared__ MatrixElemType subA[BLOCK_DIM.y][K_BLOCK_LEN] ;
+    __shared__ MatrixElemType subB[K_BLOCK_LEN][BLOCK_DIM.x] ;
 
     float subCElem = 0.0 ;
     
@@ -25,15 +26,15 @@ __global__ void gpuProduct(Matrix A, Matrix B, Matrix C, int m, int k , int n, i
     int colB = threadIdx.x + blockIdx.x * blockDim.x ;
 
     if (rowA < m && colB < n) {
-        for (int kMult = 0 ; kMult < (k / 32) + 1 ; kMult++) {
+        for (int kMult = 0 ; kMult < (k / K_BLOCK_LEN) + 1 ; kMult++) {
 
-            for (int kLocIdx = 0 ; kLocIdx < min(k - 32 * kMult, 32) ; kLocIdx++) {
-                int kGlobIdx = kMult * 32 + kLocIdx ;
+            for (int kLocIdx = 0 ; kLocIdx < min(k - K_BLOCK_LEN * kMult, K_BLOCK_LEN) ; kLocIdx++) {
+                int kGlobIdx = kMult * K_BLOCK_LEN + kLocIdx ;
                 subA[threadIdx.y][kLocIdx] = A[INDEX(rowA, kGlobIdx , pitchA)] ;
                 subB[kLocIdx][threadIdx.x] = B[INDEX(kGlobIdx, colB, pitchB)] ;
             }
 
-            for (int i = 0 ; i < min(k - 32 * kMult, 32) ; i++) {
+            for (int i = 0 ; i < min(k - K_BLOCK_LEN * kMult, K_BLOCK_LEN) ; i++) {
                 subCElem += subA[threadIdx.y][i] * subB[i][threadIdx.x] ;
             }
         }

@@ -60,6 +60,9 @@ int main(int argc, char *argv[]) {
     printf("Relative Error >>> %f\n", relErr) ;
     printf("GPU Time >>> %f\n", info.productTime) ;
     printf("CPU Time >>> %f\n", seqTime) ;
+    
+    printf("GPU GFLOPS >>> %f\n", (2.e-6 * m * k * n) / info.productTime) ;
+    printf("CPU GFLOPS >>> %f\n", (2.e-6 * m * k * n) / seqTime) ;
 
     // Content cont ;
     // cont.matrix = seqC ;
