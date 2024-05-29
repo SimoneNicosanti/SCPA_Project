@@ -37,6 +37,7 @@ __global__ void gpuProduct(Matrix A, Matrix B, Matrix C, int m, int k , int n, i
             for (int i = 0 ; i < min(k - K_BLOCK_LEN * kMult, K_BLOCK_LEN) ; i++) {
                 subCElem += subA[threadIdx.y][i] * subB[i][threadIdx.x] ;
             }
+            __syncthreads() ;
         }
         C[INDEX(rowA, colB, pitchC)] += subCElem ;
         

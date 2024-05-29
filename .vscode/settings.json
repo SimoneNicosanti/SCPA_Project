@@ -10,6 +10,10 @@
         "string_view": "c",
         "initializer_list": "c",
         "openmpproduct.h": "c",
-        "cudaproduct.h": "c"
+        "cudaproduct.h": "c",
+        "chrono": "cpp",
+        "random": "cpp",
+        "limits": "cpp",
+        "algorithm": "cpp"
     },
 }
