@@ -64,12 +64,12 @@ int main(int argc, char *argv[]) {
     printf("GPU GFLOPS >>> %f\n", (2.e-6 * m * k * n) / info.productTime) ;
     printf("CPU GFLOPS >>> %f\n", (2.e-6 * m * k * n) / seqTime) ;
 
-    // Content cont ;
-    // cont.matrix = seqC ;
-    // printMessage("SEQ MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
+    Content cont ;
+    cont.matrix = seqC ;
+    printMessage("SEQ MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
 
-    // cont.matrix = parC ;
-    // printMessage("PAR MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
+    cont.matrix = parC ;
+    printMessage("PAR MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
 
     free(A) ;
     free(B) ;

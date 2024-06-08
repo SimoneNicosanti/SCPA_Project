@@ -1,6 +1,6 @@
 #pragma once
 
-#define INDEX(i, j, numCols) i * (numCols) + j
+#define INDEX(i, j, numCols) (i) * (numCols) + (j)
 
 typedef float * Matrix ;
 typedef float MatrixElemType ;
