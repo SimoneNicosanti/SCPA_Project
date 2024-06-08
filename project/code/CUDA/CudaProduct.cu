@@ -38,9 +38,6 @@ __global__ void gpuProduct(Matrix A, Matrix B, Matrix C, int m, int k , int n, i
         if (kIdxA < currKLen && row < m) {
             subA[thrY][kIdxA] = A[INDEX(row, kDispl + kIdxA, pitchA)] ;
         }
-        if (col == 0) {
-            printf("LOADING %d %d %f\n", threadIdx.x, kIdxB, B[INDEX(kDispl + kIdxB, col, pitchB)]) ;
-        }
         if (kIdxB < currKLen && col < n) {
             subB[kIdxB][thrX] = B[INDEX(kDispl + kIdxB, col, pitchB)] ;
         }
@@ -48,9 +45,6 @@ __global__ void gpuProduct(Matrix A, Matrix B, Matrix C, int m, int k , int n, i
 
         if (row < m && col < n) {
             for (int kIdx = 0 ; kIdx < currKLen ; kIdx++) {
-                if (row == 0 && col == 0) {
-                    printf("PROD %f %f\n", subA[thrY][kIdx], subB[kIdx][thrX]) ;
-                }
                 cAcc += subA[thrY][kIdx] * subB[kIdx][thrX] ;
             }
         }
