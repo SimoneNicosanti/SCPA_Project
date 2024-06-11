@@ -50,7 +50,7 @@ __global__ void gpuProduct(Matrix A, Matrix B, Matrix C, int m, int k , int n, i
         // TODO Handle different tile size
 
         // Doing tile product
-        if (thrX < colsPerBlock) {
+        if (loadingCol < n) {
             int currTileSize = min(TILE_SIZE, BLOCK_SIZE - TILE_SIZE * thrY) ;
             for (int dotIdx = 0 ; dotIdx < currKLen ; dotIdx++) {
                 MatrixElemType bElem = subB[dotIdx][thrX] ;
@@ -63,10 +63,11 @@ __global__ void gpuProduct(Matrix A, Matrix B, Matrix C, int m, int k , int n, i
     }
     
     // Moving back to C
-    if (loadingRow < m && loadingCol < n) {
+    int cRowStart = blockIdx.x * BLOCK_SIZE + thrY * TILE_SIZE ;
+    if (cRowStart < m && loadingCol < n) {
         int currTileSize = min(TILE_SIZE, BLOCK_SIZE - TILE_SIZE * thrY) ;
         for (int tileIdx = 0 ; tileIdx < currTileSize ; tileIdx++) {
-            C[INDEX(tileIdx + loadingRow, loadingCol, pitchC)] += cAccArray[tileIdx] ;
+            C[INDEX(tileIdx + cRowStart, loadingCol, pitchC)] += cAccArray[tileIdx] ;
         }
     }
 }

@@ -94,16 +94,15 @@ void matrixProduct(Matrix A, Matrix B, Matrix C, int m, int k, int n) {
 
 
 double computeRelativeError(Matrix seqMat, Matrix parMat, int rows, int cols) {
-    double normNum = 0 ;
-    double normDen = 0 ;
-    int maxI, maxJ ;
+    double normNum = 0.0 ;
+    double normDen = 0.0 ;
 
     for (int i = 0 ; i < rows ; i++) {
-        double rowNormNum = 0 ;
-        double rowNormDen = 0 ;
+        double rowNormNum = 0.0 ;
+        double rowNormDen = 0.0 ;
         for (int j = 0 ; j < cols ; j++) {
-            rowNormNum += fabs(parMat[INDEX(i,j,cols)] - seqMat[INDEX(i,j,cols)]) ;
-            rowNormDen += fabs(seqMat[INDEX(i,j,cols)]) ;
+            rowNormNum += fabsf(parMat[INDEX(i,j,cols)] - seqMat[INDEX(i,j,cols)]) ;
+            rowNormDen += fabsf(seqMat[INDEX(i,j,cols)]) ;
         }
 
         if (normNum < rowNormNum) {

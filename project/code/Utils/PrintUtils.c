@@ -66,7 +66,7 @@ void printRealArray(float *array, int dim) {
 
 void printMatrix(float *matrix, int firstDimLen, int secDimLen) {
     for (int i = 0 ; i < firstDimLen ; i++) {
-        printRealArray(&matrix[i], secDimLen) ;
+        printRealArray(&matrix[i * secDimLen], secDimLen) ;
     }
     printf("\n") ;
 }

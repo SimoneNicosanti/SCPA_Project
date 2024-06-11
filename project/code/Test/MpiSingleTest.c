@@ -71,11 +71,14 @@ void main(int argc, char *argv[]) {
     // ONLY 0 does the parallel product
     if (myRank == 0 && m <= 2000) {
         seqTime = doSeqTest(A, B, seqC, m, k, n) ;
-        Content cont ;
-        cont.matrix = seqC ;
+        
         relativeError = computeRelativeError(seqC, parC, m, n) ;
         printf("SEQUENTIAL TIME > %f\n", seqTime) ;
         printf("RELATIVE ERROR > %f\n", relativeError) ;
+
+        // Content cont ;
+        // cont.matrix = seqC ;
+        // printMessage("SEQUENTIAL MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
     }
 
     if (myRank == 0) {

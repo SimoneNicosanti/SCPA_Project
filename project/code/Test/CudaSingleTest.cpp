@@ -55,6 +55,14 @@ int main(int argc, char *argv[]) {
     timer->stop();
 
     float seqTime = timer->getTime() ;
+
+    Content cont ;
+    cont.matrix = seqC ;
+    printMessage("SEQ MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
+
+    cont.matrix = parC ;
+    printMessage("PAR MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
+
     double relErr = computeRelativeError(seqC, parC, m, n) ;
 
     printf("Relative Error >>> %f\n", relErr) ;
@@ -64,12 +72,7 @@ int main(int argc, char *argv[]) {
     printf("GPU GFLOPS >>> %f\n", (2.e-6 * m * k * n) / info.productTime) ;
     printf("CPU GFLOPS >>> %f\n", (2.e-6 * m * k * n) / seqTime) ;
 
-    Content cont ;
-    cont.matrix = seqC ;
-    printMessage("SEQ MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
-
-    cont.matrix = parC ;
-    printMessage("PAR MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
+    
 
     free(A) ;
     free(B) ;
