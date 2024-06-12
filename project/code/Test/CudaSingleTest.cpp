@@ -56,12 +56,12 @@ int main(int argc, char *argv[]) {
 
     float seqTime = timer->getTime() ;
 
-    Content cont ;
-    cont.matrix = seqC ;
-    printMessage("SEQ MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
+    // Content cont ;
+    // cont.matrix = seqC ;
+    // printMessage("SEQ MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
 
-    cont.matrix = parC ;
-    printMessage("PAR MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
+    // cont.matrix = parC ;
+    // printMessage("PAR MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
 
     double relErr = computeRelativeError(seqC, parC, m, n) ;
 

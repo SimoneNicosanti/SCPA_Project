@@ -59,7 +59,7 @@ void printIntegerArray(int *array, int dim) {
 void printRealArray(float *array, int dim) {
     printf("[") ;
     for (int i = 0 ; i < dim ; i++) {
-        printf((i == dim - 1) ? "%f" : "%f ", array[i]) ;
+        printf((i == dim - 1) ? "%.0f" : "%.0f ", array[i]) ;
     }
     printf("]\n") ;
 }
