@@ -10,13 +10,110 @@
 #define DEF_MB 50
 #define DEF_NB 50
 
-const int BLOCK_SIZE = 64 ;
-const int TILE_SIZE = 8 ;
-const int K_BLOCK_LEN = TILE_SIZE ;
+const int M_BLOCK_SIZE = 64 ;
+const int N_BLOCK_SIZE = 64 ;
+const int K_BLOCK_SIZE = 8 ;
+
+const int A_TILE_SIZE = 8 ;
+const int B_TILE_SIZE = 8 ;
+
+
+
+__device__ void loadSubMatrices(Matrix A, Matrix B, int m, int k, int n, int pitchA, int pitchB, int kDispl, Matrix subA, Matrix subB) {
+    int startLoadSubRowA = threadIdx.x / K_BLOCK_SIZE ;
+    int startLoadRowA = M_BLOCK_SIZE * blockIdx.y ;
+    int kSubA = threadIdx.x % K_BLOCK_SIZE ;
+    int rowsPerBlock = min(M_BLOCK_SIZE, m - M_BLOCK_SIZE * blockIdx.y) ;
+
+    int loadingIncr = blockDim.x / K_BLOCK_SIZE ;
+    for (int loadRowIdx = startLoadSubRowA ; loadRowIdx < rowsPerBlock ; loadRowIdx += loadingIncr) {
+        if (kDispl + kSubA < k) {
+            subA[INDEX(loadRowIdx, kSubA, K_BLOCK_SIZE)] = A[INDEX(startLoadRowA + loadRowIdx, kDispl + kSubA, pitchA)] ;
+        }
+    }
+
+    int startLoadSubColB = threadIdx.x % loadingIncr ;
+    int startLoadColB = N_BLOCK_SIZE * blockIdx.x ;
+    int kSubB = threadIdx.x / loadingIncr ;
+    int colsPerBlock = min(N_BLOCK_SIZE, n - N_BLOCK_SIZE * blockIdx.x) ;
+
+    for (int loadColIdx = startLoadSubColB ; loadColIdx < colsPerBlock ; loadColIdx += loadingIncr) {
+        if (kDispl + kSubB < k) {
+            subB[INDEX(kSubB, loadColIdx, N_BLOCK_SIZE)] = B[INDEX(kDispl + kSubB, startLoadColB + loadColIdx, pitchB)] ;
+        }
+    }
+
+    
+
+}
 
 void moveMatricesFromHostToDevice(Matrix hostMatrix, Matrix *devMatrix, int rows, int cols, size_t *pitchPtr) ;
 
+// Implem_4
+__global__ void gpuProduct(Matrix A, Matrix B, Matrix C, int m, int k , int n, int pitchA, int pitchB, int pitchC) {
+    __shared__ MatrixElemType subA[M_BLOCK_SIZE * K_BLOCK_SIZE] ;
+    __shared__ MatrixElemType subB[K_BLOCK_SIZE * N_BLOCK_SIZE] ;
+
+    MatrixElemType cAccMatrix[A_TILE_SIZE][B_TILE_SIZE] = {0.0} ;
+    MatrixElemType subColA[A_TILE_SIZE] = {0.0} ;
+    MatrixElemType subRowB[B_TILE_SIZE] = {0.0} ;
+
+    int rowsPerBlock = min(M_BLOCK_SIZE, m - M_BLOCK_SIZE * blockIdx.y) ;
+    int colsPerBlock = min(N_BLOCK_SIZE, n - N_BLOCK_SIZE * blockIdx.x) ;
+
+    int numTilesB = ((colsPerBlock - 1) / B_TILE_SIZE) + 1 ;
+    int numTilesA = ((rowsPerBlock - 1) / A_TILE_SIZE) + 1 ;
+
+    int thrX = threadIdx.x % numTilesB ;
+    int thrY = threadIdx.x / numTilesB ;
+
+    int currTileSizeA = min(A_TILE_SIZE, rowsPerBlock - A_TILE_SIZE * thrY) ;
+    int currTileSizeB = min(B_TILE_SIZE, colsPerBlock - B_TILE_SIZE * thrX) ;
+
+    for (int kDispl = 0 ; kDispl < k ; kDispl += K_BLOCK_SIZE) {
+
+        // Loading subA and subB
+        loadSubMatrices(A, B, m, k, n, pitchA, pitchB, kDispl, subA, subB) ;
+        __syncthreads() ;
+
+        int currKLen = min(K_BLOCK_SIZE, k - kDispl) ;
+
+        // Each thread computes a little rectangle of C
+        if (thrY < numTilesA) {
+            for (int dotIdx = 0 ; dotIdx < currKLen ; dotIdx++) {
+                // Loading A Column and B Row in register cache
+                for (int i = 0 ; i < currTileSizeA ; i++) {
+                    subColA[i] = subA[INDEX(i + thrY * A_TILE_SIZE, dotIdx, K_BLOCK_SIZE)] ;
+                }
+                for (int j = 0 ; j < currTileSizeB ; j++) {
+                    subRowB[j] = subB[INDEX(dotIdx, j + thrX * B_TILE_SIZE, N_BLOCK_SIZE)] ;
+                }
+
+                for (int rowIdx = 0 ; rowIdx < currTileSizeA ; rowIdx++) {
+                    for (int colIdx = 0 ; colIdx < currTileSizeB ; colIdx++) {
+                        cAccMatrix[rowIdx][colIdx] += subColA[rowIdx] * subRowB[colIdx] ;
+                    }
+                }
+            }
+        }
+        __syncthreads() ;
+    }
+    
+    // Moving back to C
+    int cRowStart = blockIdx.y * M_BLOCK_SIZE + thrY * A_TILE_SIZE ;
+    int cColStart = blockIdx.x * N_BLOCK_SIZE + thrX * B_TILE_SIZE ;
+    if (cRowStart < m && cColStart < n) {
+        for (int tileIdxA = 0 ; tileIdxA < currTileSizeA ; tileIdxA++) {
+            for (int tileIdxB = 0 ; tileIdxB < currTileSizeB ; tileIdxB++) {
+                C[INDEX(tileIdxA + cRowStart, tileIdxB + cColStart, pitchC)] += cAccMatrix[tileIdxA][tileIdxB] ;
+            }
+        }
+    }
+}
+
+
 // Implem_3
+/*
 __global__ void gpuProduct(Matrix A, Matrix B, Matrix C, int m, int k , int n, int pitchA, int pitchB, int pitchC) {
     __shared__ MatrixElemType subA[BLOCK_SIZE][K_BLOCK_LEN] ;
     __shared__ MatrixElemType subB[K_BLOCK_LEN][BLOCK_SIZE] ;
@@ -72,6 +169,7 @@ __global__ void gpuProduct(Matrix A, Matrix B, Matrix C, int m, int k , int n, i
         }
     }
 }
+*/
 
 // Implem_2
 /*
@@ -189,8 +287,13 @@ void CudaProduct(Matrix hostA, Matrix hostB, Matrix hostC, int m, int k, int n, 
     // dim3 BLOCK_DIM(BLOCK_SIZE * BLOCK_SIZE) ;
     // dim3 GRID_DIM(((n - 1) / BLOCK_SIZE) + 1, ((m - 1) / BLOCK_SIZE) + 1) ;
 
-    dim3 BLOCK_DIM((BLOCK_SIZE * BLOCK_SIZE) / TILE_SIZE) ;
-    dim3 GRID_DIM(((n - 1) / BLOCK_SIZE) + 1, ((m - 1) / BLOCK_SIZE) + 1) ;
+    // Implem_3
+    // dim3 BLOCK_DIM((BLOCK_SIZE * BLOCK_SIZE) / TILE_SIZE) ;
+    // dim3 GRID_DIM(((n - 1) / BLOCK_SIZE) + 1, ((m - 1) / BLOCK_SIZE) + 1) ;
+
+    // Implem_4
+    dim3 BLOCK_DIM((M_BLOCK_SIZE * N_BLOCK_SIZE) / (A_TILE_SIZE * B_TILE_SIZE)) ;
+    dim3 GRID_DIM(((n - 1) / N_BLOCK_SIZE) + 1, ((m - 1) / M_BLOCK_SIZE) + 1) ;
 
     StopWatchInterface* timer = 0;
     sdkCreateTimer(&timer);
