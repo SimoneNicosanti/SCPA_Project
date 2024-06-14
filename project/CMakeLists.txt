@@ -11,16 +11,25 @@ set(CUSTOM_BUILD_DIR ${CMAKE_SOURCE_DIR}/out)
 # Set compilation flags
 add_compile_options(-O3) # Optimization Flag
 add_compile_options(-march=native) # Optimization Flag
+set(CMAKE_CXX_FLAGS "-O3")
+set(CUDA_PROPAGATE_HOST_FLAGS OFF)
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DSM_${CC};-arch=sm_${CC};-lineinfo;-Xcompiler=${CMAKE_CXX_FLAGS};-Xptxas=-v)
 # add_compile_options(-ffast-math) # Optimization Flag
 # add_compile_options(-funroll-loops) # Optimization Flag
 
+## Warning flags
 # add_compile_options(-Wall)
 # add_compile_options(-Wextra)
 
-# Find MPI and OpenMP Packages
+# Find MPI Packages
 find_package(MPI REQUIRED)
-find_package(CUDA REQUIRED)
 include_directories(SYSTEM ${MPI_INCLUDE_PATH})
+
+# Find CUDA Packages
+find_package(CUDA REQUIRED)
+include_directories(${CUDA_INCLUDE_DIRS})
+include_directories(${CUDA_TOOLKIT_ROOT_DIR}/samples/Common)
+
 # set(CMAKE_CPP_COMPILER /usr/bin/g++)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
