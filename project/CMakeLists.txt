@@ -60,19 +60,21 @@ target_link_libraries(MpiProduct
     PRIVATE ${MPI_C_LIBRARIES}
 )
 
-## Targer for CUDA Utility
+## Target for CUDA Utility
 file(GLOB CudaProduct_Src code/CUDA/*)
 add_library(CudaProduct 
     ${CudaProduct_Src}
 )
 target_include_directories(CudaProduct
     PUBLIC code/CUDA
+    PUBLIC code/CUDA/Kernel
 )
 target_link_libraries(CudaProduct 
     PRIVATE Matrix
 )
 set_target_properties(CudaProduct PROPERTIES
-    CUDA_SEPARABLE_COMPILATION ON)
+    CUDA_SEPARABLE_COMPILATION ON
+)
 
 
 ## Target for Test utility
@@ -107,6 +109,8 @@ target_link_libraries(MpiSingleTest.out
     PRIVATE Utils
     PRIVATE ${MPI_CXX_LIBRARIES}
 )
+
+
 
 
 

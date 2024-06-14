@@ -1,1 +1,2 @@
 */build/*
+!*/build/.toCommit.txt
