@@ -12,12 +12,15 @@
 
 
 
-int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *blockRowsPtr, int *blockColsPtr) ;
+int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *blockRowsPtr, int *blockColsPtr, Version *versionPtr) ;
+void convertVersion(int versionInt, Version *version) ;
 
 
 int main(int argc, char *argv[]) {
     int m, k, n, blockRows = 0, blockCols = 0 ;
-    extractParams(argc, argv, &m, &k, &n, &blockRows, &blockCols) ;
+    Version version ;
+    extractParams(argc, argv, &m, &k, &n, &blockRows, &blockCols, &version) ;
+
     Matrix A = allocRandomMatrix(m, k) ; // TODO Check if can change with cudaHostAllocMapped --> Need to change the allocations
     Matrix B = allocRandomMatrix(k, n) ;
     Matrix C = allocRandomMatrix(m, n) ;
@@ -45,16 +48,25 @@ int main(int argc, char *argv[]) {
     copyMatrix(seqC, C, m, n) ;
 
     Info info ;
-    CudaProduct(A, B, parC, m, k, n, blockRows, blockCols, &info) ;
+    Version ver ;
+    
+    CudaProduct(A, B, parC, m, k, n, blockRows, blockCols, version, &info) ;
 
     StopWatchInterface* timer = 0;
     sdkCreateTimer(&timer);
+    printf("GPU Time >>> %f\n", info.productTime) ;
+    printf("GPU GFLOPS >>> %f\n", (2.e-6 * m * k * n) / info.productTime) ;
 
     timer->start();
     matrixProduct(A, B, seqC, m, k, n) ;
     timer->stop();
 
     float seqTime = timer->getTime() ;
+    printf("CPU Time >>> %f\n", seqTime) ;
+    printf("CPU GFLOPS >>> %f\n", (2.e-6 * m * k * n) / seqTime) ;
+
+    double relErr = computeRelativeError(seqC, parC, m, n) ;
+    printf("Relative Error >>> %f\n", relErr) ;
 
     // Content cont ;
     // cont.matrix = seqC ;
@@ -62,16 +74,6 @@ int main(int argc, char *argv[]) {
 
     // cont.matrix = parC ;
     // printMessage("PAR MATRIX >>> ", cont, MATRIX, 0, 0, m, n, 1) ;
-
-    double relErr = computeRelativeError(seqC, parC, m, n) ;
-
-    printf("Relative Error >>> %f\n", relErr) ;
-    printf("GPU Time >>> %f\n", info.productTime) ;
-    printf("CPU Time >>> %f\n", seqTime) ;
-    
-    printf("GPU GFLOPS >>> %f\n", (2.e-6 * m * k * n) / info.productTime) ;
-    printf("CPU GFLOPS >>> %f\n", (2.e-6 * m * k * n) / seqTime) ;
-
     
 
     free(A) ;
@@ -83,7 +85,7 @@ int main(int argc, char *argv[]) {
 
 
 
-int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *blockRowsPtr, int *blockColsPtr) {
+int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *blockRowsPtr, int *blockColsPtr, Version *versionPtr) {
     
     // if (argc < 6) {
     //     return 0 ;
@@ -105,13 +107,27 @@ int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *
         if (strcmp(argv[i], "-blockCols") == 0) {
             *blockColsPtr = atoi(argv[i+1]) ;
         }
-        // if (strcmp(argv[i], "-nb") == 0) {
-        //     *nbPtr = atoi(argv[i+1]) ;
-        // }
+        if (strcmp(argv[i], "-v") == 0) {
+            convertVersion(atoi(argv[i+1]), versionPtr) ;
+        }
     }
-    if (*mPtr <= 0 || *kPtr <= 0 || *nPtr <= 0 || *blockRowsPtr < 0 || *blockColsPtr < 0) {
+    if (*mPtr <= 0 || *kPtr <= 0 || *nPtr <= 0 || *blockRowsPtr < 0 || *blockColsPtr < 0 || *versionPtr < 0) {
         return 0 ;
     }
 
     return 1 ;
+}
+
+void convertVersion(int versionInt, Version *versionPtr) {
+    switch (versionInt)
+    {
+    case 4:
+        *versionPtr = FOUR ;
+        break;
+    case 5:
+        *versionPtr = FIVE ;
+    default:
+        *versionPtr = DEFAULT ;
+        break;
+    }
 }

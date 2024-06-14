@@ -6,21 +6,18 @@
 
 #include "Matrix.h"
 #include "CudaProduct.h"
+
 #include "Kernel_4.cuh"
+#include "Kernel_5.cuh"
 
 #define DEF_MB 50
 #define DEF_NB 50
 
 void moveMatricesFromHostToDevice(Matrix hostMatrix, Matrix *devMatrix, int rows, int cols, size_t *pitchPtr) ;
-float callKernel(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC) ;
+float callKernel(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC, Version version) ;
 
-
-float callKernel(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC) {
-
-    StopWatchInterface* timer = 0;
-    sdkCreateTimer(&timer);
-
-    // Implem_4
+void callKernel_4(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC) {
+    printf("CUDA Product Version >>> 4\n") ;
     const int M_BLOCK_SIZE = 128 ;
     const int N_BLOCK_SIZE = 128 ;
     const int K_BLOCK_SIZE = 8 ;
@@ -31,16 +28,56 @@ float callKernel(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, 
     dim3 BLOCK_DIM((M_BLOCK_SIZE * N_BLOCK_SIZE) / (A_TILE_SIZE * B_TILE_SIZE)) ;
     dim3 GRID_DIM(((n - 1) / N_BLOCK_SIZE) + 1, ((m - 1) / M_BLOCK_SIZE) + 1) ;
 
-    timer->start();
     gpuProduct_4
-    <M_BLOCK_SIZE, K_BLOCK_SIZE, N_BLOCK_SIZE, A_TILE_SIZE, B_TILE_SIZE> 
-    <<<GRID_DIM, BLOCK_DIM>>>(
-        A, B, C, 
-        m, k, n, 
-        pitchA, pitchB, pitchC
-    );
+        <M_BLOCK_SIZE, K_BLOCK_SIZE, N_BLOCK_SIZE, A_TILE_SIZE, B_TILE_SIZE> 
+        <<<GRID_DIM, BLOCK_DIM>>>(
+            A, B, C, 
+            m, k, n, 
+            pitchA, pitchB, pitchC
+        );
     checkCudaErrors(cudaDeviceSynchronize());
-    timer->stop();
+}
+
+void callKernel_5(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC) {
+    printf("CUDA Product Version >>> 5\n") ;
+    const int M_BLOCK_SIZE = 128 ;
+    const int N_BLOCK_SIZE = 128 ;
+    const int K_BLOCK_SIZE = 8 ;
+
+    const int A_TILE_SIZE = 4 ;
+    const int B_TILE_SIZE = 4 ;
+
+    dim3 BLOCK_DIM((M_BLOCK_SIZE * N_BLOCK_SIZE) / (A_TILE_SIZE * B_TILE_SIZE)) ;
+    dim3 GRID_DIM(((n - 1) / N_BLOCK_SIZE) + 1, ((m - 1) / M_BLOCK_SIZE) + 1) ;
+
+    gpuProduct_5
+        <M_BLOCK_SIZE, K_BLOCK_SIZE, N_BLOCK_SIZE, A_TILE_SIZE, B_TILE_SIZE> 
+        <<<GRID_DIM, BLOCK_DIM>>>(
+            A, B, C, 
+            m, k, n, 
+            pitchA, pitchB, pitchC
+        );
+    checkCudaErrors(cudaDeviceSynchronize());
+}
+
+float callKernel(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC, Version version) {
+
+    StopWatchInterface* timer = 0;
+    sdkCreateTimer(&timer);
+
+    timer->start();
+    switch (version)
+    {
+    case FOUR:
+        callKernel_4(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
+        break;
+    case FIVE:
+        callKernel_5(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
+        break;
+    case DEFAULT:
+        callKernel_5(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
+    }
+    timer->stop();    
 
     return timer->getTime() ;
 
@@ -50,6 +87,7 @@ void CudaProduct(
     Matrix hostA, Matrix hostB, Matrix hostC, 
     int m, int k, int n, 
     int mb, int nb, 
+    Version version,
     Info *infoPtr
 ) {
 
@@ -66,7 +104,7 @@ void CudaProduct(
     moveMatricesFromHostToDevice(hostB, &devB, k, n, &pitchB) ;
     moveMatricesFromHostToDevice(hostC, &devC, m, n, &pitchC) ;
 
-    float kernelTime = callKernel(devA, devB, devC, m, k, n, pitchA, pitchB, pitchC) ;
+    float kernelTime = callKernel(devA, devB, devC, m, k, n, pitchA, pitchB, pitchC, version) ;
     infoPtr->productTime = kernelTime ;
 
     checkCudaErrors(

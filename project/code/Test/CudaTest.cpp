@@ -103,7 +103,8 @@ int main(int argc, char *argv[]) {
 // TODO Change -> Make return Info
 double doParTest(Matrix A, Matrix B, Matrix C, int m, int k, int n) {
     Info info ;
-    CudaProduct(A, B, C, m, k, n, 0, 0, &info) ;
+    Version version = DEFAULT ;
+    CudaProduct(A, B, C, m, k, n, 0, 0, version, &info) ;
 
     return info.productTime ;
 }

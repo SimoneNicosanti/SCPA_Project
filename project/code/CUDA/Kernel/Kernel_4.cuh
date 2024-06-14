@@ -6,39 +6,39 @@
 #include "Matrix.h"
 
 /*
-    In this case each thread computes a sub square
-    in Matrix C
+    In this case each thread:
+    - Loads multiple elements from GMEM to SMEM
+    - Computes a sub square of elements in Matrix C
 */
 
-
-__device__ void loadSubMatrices(
+template <const int MB, const int KB, const int NB>
+__device__ void loadSubMatrices_4(
     Matrix A, Matrix B, 
     int m, int k, int n, 
-    int mb, int kb, int nb,
     int pitchA, int pitchB, 
     int kDispl, 
     Matrix subA, Matrix subB
 ) {
-    int startLoadSubRowA = threadIdx.x / kb ;
-    int startLoadRowA = mb * blockIdx.y ;
-    int kSubA = threadIdx.x % kb ;
-    int rowsPerBlock = min(mb, m - mb * blockIdx.y) ;
+    int startLoadSubRowA = threadIdx.x / KB ;
+    int startLoadRowA = MB * blockIdx.y ;
+    int kSubA = threadIdx.x % KB ;
+    int rowsPerBlock = min(MB, m - MB * blockIdx.y) ;
 
-    int loadingIncr = blockDim.x / kb ;
+    int loadingIncr = blockDim.x / KB ;
     for (int loadRowIdx = startLoadSubRowA ; loadRowIdx < rowsPerBlock ; loadRowIdx += loadingIncr) {
         if (kDispl + kSubA < k) {
-            subA[INDEX(loadRowIdx, kSubA, kb)] = A[INDEX(startLoadRowA + loadRowIdx, kDispl + kSubA, pitchA)] ;
+            subA[INDEX(loadRowIdx, kSubA, KB)] = A[INDEX(startLoadRowA + loadRowIdx, kDispl + kSubA, pitchA)] ;
         }
     }
 
     int startLoadSubColB = threadIdx.x % loadingIncr ;
-    int startLoadColB = nb * blockIdx.x ;
+    int startLoadColB = NB * blockIdx.x ;
     int kSubB = threadIdx.x / loadingIncr ;
-    int colsPerBlock = min(nb, n - nb * blockIdx.x) ;
+    int colsPerBlock = min(NB, n - NB * blockIdx.x) ;
 
     for (int loadColIdx = startLoadSubColB ; loadColIdx < colsPerBlock ; loadColIdx += loadingIncr) {
         if (kDispl + kSubB < k) {
-            subB[INDEX(kSubB, loadColIdx, nb)] = B[INDEX(kDispl + kSubB, startLoadColB + loadColIdx, pitchB)] ;
+            subB[INDEX(kSubB, loadColIdx, NB)] = B[INDEX(kDispl + kSubB, startLoadColB + loadColIdx, pitchB)] ;
         }
     }
 }
@@ -71,7 +71,9 @@ __global__ void gpuProduct_4(
     for (int kDispl = 0 ; kDispl < k ; kDispl += KB) {
 
         // Loading subA and subB
-        loadSubMatrices(A, B, m, k, n, MB, KB, NB, pitchA, pitchB, kDispl, subA, subB) ;
+        loadSubMatrices_4
+            <MB, KB, NB>
+            (A, B, m, k, n, pitchA, pitchB, kDispl, subA, subB) ;
         __syncthreads() ;
 
         int currKLen = min(KB, k - kDispl) ;
