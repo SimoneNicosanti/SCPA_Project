@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 FILE_LIST = ["Square", "Rect"]
 FOLDER_LIST = ["MPI"]
 
-def squareTest(folder : str, case : str) :
+def mpiSquareTestAnalyze(folder : str, case : str) :
     dataSet = pd.read_csv(f"../{folder}/Tests/{folder}_{case}_Test.csv")
 
     avgDataSet = dataSet.groupby(["M", "N", "K", "ProcessNum"]).mean().reset_index()
@@ -30,7 +30,7 @@ def squareTest(folder : str, case : str) :
     plt.savefig(f"../{folder}/Charts/{folder}_GFLOPS_{case}_Chart.png")
     plt.clf()
 
-def rectangularTest(folder : str, case : str) :
+def mpiRectTestAnalyze(folder : str, case : str) :
     dataSet = pd.read_csv(f"../{folder}/Tests/{folder}_{case}_Test.csv")
 
     avgDataSet = dataSet.groupby(["M", "N", "K", "ProcessNum"]).mean().reset_index()
@@ -58,15 +58,28 @@ def rectangularTest(folder : str, case : str) :
     plt.savefig(f"../{folder}/Charts/{folder}_GFLOPS_{case}_Chart.png")
     plt.clf()
 
-def main() :
-    for folder in FOLDER_LIST :
-        for case in FILE_LIST:
-            if (case == "Square") :
-                squareTest(folder, case)
-            if (case == "Rect") :
-                rectangularTest(folder, case) 
 
-    return 
+def cudaSquareTestAnalyze(folder : str, case : str) :
+    pass
+
+def cudaRectTestAnalyze(folder : str, case : str) :
+    pass
+
+
+
+def mpiAnalyze() :
+    mpiSquareTestAnalyze("MPI", "Square")
+    mpiRectTestAnalyze("MPI", "Rect") 
+
+
+def cudaAnalyze() :
+    cudaSquareTestAnalyze("CUDA", "Square")
+    cudaRectTestAnalyze("CUDA", "Rect")
+
+
+def main() :
+    mpiAnalyze() 
+    cudaAnalyze() 
 
 
 if __name__ == "__main__" :

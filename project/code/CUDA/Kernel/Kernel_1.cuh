@@ -1,6 +1,14 @@
+#include <cuda_runtime.h>
+#include <helper_functions.h>
+#include <helper_cuda.h>
+#include <stdio.h>
+
+#include "Matrix.h"
+
 // Implem_1
-/*
-__global__ void gpuProduct(Matrix A, Matrix B, Matrix C, int m, int k , int n, int pitchA, int pitchB, int pitchC) {
+
+template <const int MB, const int KB, const int NB>
+__global__ void gpuProduct_1(Matrix A, Matrix B, Matrix C, int m, int k , int n, int pitchA, int pitchB, int pitchC) {
 
     __shared__ MatrixElemType subA[BLOCK_SIZE][K_BLOCK_LEN] ;
     __shared__ MatrixElemType subB[K_BLOCK_LEN][BLOCK_SIZE] ;
@@ -38,4 +46,3 @@ __global__ void gpuProduct(Matrix A, Matrix B, Matrix C, int m, int k , int n, i
         C[INDEX(row, col, pitchC)] += cAcc ;
     }
 }
-*/

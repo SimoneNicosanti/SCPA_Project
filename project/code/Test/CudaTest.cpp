@@ -24,6 +24,7 @@ void rectangularTests() ;
 void squareTests() {
     for (int probDim = START_PROB_DIM ; probDim < MAX_PROB_DIM ; probDim += SIZE_INCREMENT) {
         char *outputPath = "../Results/CUDA/Tests/CUDA_Square_Test.csv" ;
+        printf("Test con >>> (%d, %d, %d)\n", probDim, probDim, probDim) ;
         testProducts(probDim, probDim, probDim, outputPath) ;
     }
 }
@@ -39,6 +40,7 @@ void rectangularTests() {
     for (int i = 0 ; i < 4 ; i++) {
         int k = kSizesList[i] ;
         char *outputPath = "../Results/CUDA/Tests/CUDA_Rect_Test.csv" ;
+        printf("Test con >>> (%d, %d, %d)\n", otherSizes, k, otherSizes) ;
         testProducts(otherSizes, k, otherSizes, outputPath) ;
     }
 }
@@ -67,11 +69,11 @@ void testProducts(int m, int k, int n, char *resultFile) {
         copyMatrix(seqC, C, m, n) ;
 
         testResult.parallelTime = doParTest(A, B, parC, m, k, n) ;
-        testResult.parallelTime = testResult.parallelTime * 1.e-3 ;
+        testResult.parallelTime = testResult.parallelTime ;
         // ONLY 0 does the parallel product
         if (k < 0) {
             testResult.sequentialTime = doSeqTest(A, B, seqC, m, k, n) ;
-            testResult.sequentialTime = testResult.sequentialTime * 1.e-3 ;
+            testResult.sequentialTime = testResult.sequentialTime ;
 
             testResult.relativeError = computeRelativeError(seqC, parC, m, n) ;
         } else {

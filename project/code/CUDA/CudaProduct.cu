@@ -15,6 +15,7 @@
 #define DEF_NB 50
 
 void moveMatricesFromHostToDevice(Matrix hostMatrix, Matrix *devMatrix, int rows, int cols, size_t *pitchPtr) ;
+void removeMatricesFromDevice(Matrix hostMat, Matrix devMat, int m, int k) ;
 float callKernel(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC, Version version) ;
 
 void callKernel_4(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC) {
@@ -138,12 +139,14 @@ void CudaProduct(
         cudaMemcpy2D(hostC, sizeof(MatrixElemType) * n, devC, pitchC * sizeof(MatrixElemType), sizeof(MatrixElemType) * n, m, cudaMemcpyDeviceToHost)
     ) ;
 
-    cudaFree(devA) ;
-    cudaFree(devB) ;
-    cudaFree(devC) ;
+    removeMatricesFromDevice(hostA, devA, m, k) ;
+    removeMatricesFromDevice(hostB, devB, k, n) ;
+    removeMatricesFromDevice(hostC, devC, m, n) ;
 
     return ;
 }
+
+
 
 void moveMatricesFromHostToDevice(Matrix hostMatrix, Matrix *devMatrixPtr, int rows, int cols, size_t *pitchPtr) {
     checkCudaErrors(
@@ -156,4 +159,15 @@ void moveMatricesFromHostToDevice(Matrix hostMatrix, Matrix *devMatrixPtr, int r
         cudaMemcpy2D(*devMatrixPtr, *pitchPtr, hostMatrix, sizeof(MatrixElemType) * cols, sizeof(MatrixElemType) * cols, rows, cudaMemcpyHostToDevice)
     ) ;
     *pitchPtr = *pitchPtr / sizeof(MatrixElemType) ;
+}
+
+void removeMatricesFromDevice(Matrix hostMat, Matrix devMat, int m, int k) {
+    checkCudaErrors(
+        cudaFree(devMat) 
+    ) ;
+    
+    checkCudaErrors(
+        cudaHostUnregister(hostMat)
+    ) ;
+
 }
