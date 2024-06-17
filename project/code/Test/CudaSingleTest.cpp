@@ -121,6 +121,18 @@ int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *
 void convertVersion(int versionInt, Version *versionPtr) {
     switch (versionInt)
     {
+    case 0:
+        *versionPtr = ZERO ;
+        break ;
+    case 1:
+        *versionPtr = ONE ;
+        break ;
+    case 2 :
+        *versionPtr = TWO ;
+        break ;
+    case 3 :
+        *versionPtr = THREE ;
+        break ;
     case 4:
         *versionPtr = FOUR ;
         break;

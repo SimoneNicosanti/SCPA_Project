@@ -81,7 +81,7 @@ void testProducts(int m, int k, int n, char *resultFile) {
             testResult.relativeError = -1 ;
         }
 
-        writeTestResult(resultFile, &testResult) ;
+        writeTestResult(resultFile, &testResult, 1) ;
     }
 
     freeMatrix(A) ;

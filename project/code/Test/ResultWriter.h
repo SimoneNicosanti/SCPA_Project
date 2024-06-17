@@ -15,4 +15,4 @@ typedef struct TestResult {
 #ifdef __cplusplus
 extern "C"
 #endif
-void writeTestResult(char *fileName, TestResult *testResult) ;
+void writeTestResult(char *fileName, TestResult *testResult, int framework) ;

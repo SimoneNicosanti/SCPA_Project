@@ -90,7 +90,7 @@ void testProducts(int myRank, int procNum, int m, int k, int n, char *resultFile
 
         // Only zero writes on the CSV file
         if (myRank == 0) {
-            writeTestResult(resultFile, &testResult) ;
+            writeTestResult(resultFile, &testResult, 0) ;
         }
     }
 

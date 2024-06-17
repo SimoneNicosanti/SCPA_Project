@@ -7,9 +7,12 @@
 #include "Matrix.h"
 #include "CudaProduct.h"
 
+#include "Kernel_0.cuh"
+#include "Kernel_1.cuh"
+#include "Kernel_2.cuh"
+#include "Kernel_3.cuh"
 #include "Kernel_4.cuh"
 #include "Kernel_5.cuh"
-#include "Kernel_6.cuh"
 
 #define DEF_MB 50
 #define DEF_NB 50
@@ -17,6 +20,67 @@
 void moveMatricesFromHostToDevice(Matrix hostMatrix, Matrix *devMatrix, int rows, int cols, size_t *pitchPtr) ;
 void removeMatricesFromDevice(Matrix hostMat, Matrix devMat, int m, int k) ;
 float callKernel(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC, Version version) ;
+
+
+void callKernel_0(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC) {
+    printf("CUDA Product Version >>> 0\n") ;
+    const int BLOCK_SIZE = 32 ;
+    dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE) ;
+    dim3 gridDim((n - 1) / BLOCK_SIZE + 1, (m - 1) / BLOCK_SIZE + 1) ;
+
+    gpuProduct_0
+        <<<gridDim, blockDim>>>
+        (A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
+    checkCudaErrors(cudaDeviceSynchronize());
+}
+
+void callKernel_1(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC) {
+    printf("CUDA Product Version >>> 1\n") ;
+    const int BLOCK_SIZE = 32 ;
+    dim3 blockDim(BLOCK_SIZE * BLOCK_SIZE) ;
+    dim3 gridDim((n - 1) / BLOCK_SIZE + 1, (m - 1) / BLOCK_SIZE + 1) ;
+
+    gpuProduct_1
+        <BLOCK_SIZE>
+        <<<gridDim, blockDim>>>
+        (A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
+    checkCudaErrors(cudaDeviceSynchronize());
+}
+
+void callKernel_2(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC) {
+    printf("CUDA Product Version >>> 2\n") ;
+    const int BLOCK_SIZE = 32 ;
+    const int KB = 64 ;
+    dim3 blockDim(BLOCK_SIZE * BLOCK_SIZE) ;
+    dim3 gridDim((n - 1) / BLOCK_SIZE + 1, (m - 1) / BLOCK_SIZE + 1) ;
+
+    gpuProduct_2
+        <BLOCK_SIZE, KB>
+        <<<gridDim, blockDim>>>
+        (A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
+    checkCudaErrors(cudaDeviceSynchronize());
+}
+
+void callKernel_3(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC) {
+    printf("CUDA Product Version >>> 4\n") ;
+    const int M_BLOCK_SIZE = 64 ;
+    const int N_BLOCK_SIZE = 64 ;
+    const int K_BLOCK_SIZE = 8 ;
+
+    const int A_TILE_SIZE = 4 ;
+
+    dim3 BLOCK_DIM((M_BLOCK_SIZE * N_BLOCK_SIZE) / (A_TILE_SIZE)) ;
+    dim3 GRID_DIM(((n - 1) / N_BLOCK_SIZE) + 1, ((m - 1) / M_BLOCK_SIZE) + 1) ;
+
+    gpuProduct_3
+        <M_BLOCK_SIZE, K_BLOCK_SIZE, A_TILE_SIZE> 
+        <<<GRID_DIM, BLOCK_DIM>>>(
+            A, B, C, 
+            m, k, n, 
+            pitchA, pitchB, pitchC
+        );
+    checkCudaErrors(cudaDeviceSynchronize());
+}
 
 void callKernel_4(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC) {
     printf("CUDA Product Version >>> 4\n") ;
@@ -62,29 +126,6 @@ void callKernel_5(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA,
     checkCudaErrors(cudaDeviceSynchronize());
 }
 
-void callKernel_6(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC) {
-    // TODO Implementare Warp Tiling ???
-    printf("CUDA Product Version >>> 5\n") ;
-    const int M_BLOCK_SIZE = 128 ;
-    const int N_BLOCK_SIZE = 128 ;
-    const int K_BLOCK_SIZE = 16 ;
-
-    const int A_TILE_SIZE = 8 ;
-    const int B_TILE_SIZE = 8 ;
-
-    dim3 BLOCK_DIM((M_BLOCK_SIZE * N_BLOCK_SIZE) / (A_TILE_SIZE * B_TILE_SIZE)) ;
-    dim3 GRID_DIM(((n - 1) / N_BLOCK_SIZE) + 1, ((m - 1) / M_BLOCK_SIZE) + 1) ;
-
-    gpuProduct_6
-        <M_BLOCK_SIZE, K_BLOCK_SIZE, N_BLOCK_SIZE, A_TILE_SIZE, B_TILE_SIZE> 
-        <<<GRID_DIM, BLOCK_DIM>>>(
-            A, B, C, 
-            m, k, n, 
-            pitchA, pitchB, pitchC
-        );
-    checkCudaErrors(cudaDeviceSynchronize());
-}
-
 float callKernel(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC, Version version) {
 
     StopWatchInterface* timer = 0;
@@ -93,17 +134,26 @@ float callKernel(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, 
     timer->start();
     switch (version)
     {
-    case FOUR:
-        callKernel_4(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
-        break;
-    case FIVE:
-        callKernel_5(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
-        break;
-    case SIX:
-        callKernel_6(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
-        break;
-    case DEFAULT:
-        callKernel_6(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
+        case ZERO:
+            callKernel_0(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
+            break ;
+        case ONE:
+            callKernel_1(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
+            break ;
+        case TWO:
+            callKernel_2(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
+            break ;
+        case THREE:
+            callKernel_3(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
+            break ;
+        case FOUR:
+            callKernel_4(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
+            break ;
+        case FIVE:
+            callKernel_5(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
+            break ;
+        case DEFAULT:
+            callKernel_5(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
     }
     timer->stop();    
 
