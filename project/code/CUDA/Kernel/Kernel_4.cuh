@@ -73,7 +73,7 @@ __global__ void gpuProduct_4(
     for (int kDispl = 0 ; kDispl < k ; kDispl += KB) {
 
         // Loading subA and subB
-        loadSubMatrices_5
+        loadSubMatrices_4
             <MB, KB, NB>
             (A, B, m, k, n, pitchA, pitchB, kDispl, subA, subB) ;
         __syncthreads() ;

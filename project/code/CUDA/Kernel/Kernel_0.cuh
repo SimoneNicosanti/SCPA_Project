@@ -15,7 +15,7 @@
 
 __global__ void gpuProduct_0(Matrix A, Matrix B, Matrix C, int m, int k , int n, int pitchA, int pitchB, int pitchC) {
 
-    int rowIdx = threadIdx.x + blockIdx.y * blockDim.y ;
+    int rowIdx = threadIdx.y + blockIdx.y * blockDim.y ;
     int colIdx = threadIdx.x + blockIdx.x * blockDim.x ;
 
     if (colIdx < n && rowIdx < m) {

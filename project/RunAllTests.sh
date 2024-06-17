@@ -1,0 +1,2 @@
+./RunMpiTests.sh
+./RunCudaTests.sh

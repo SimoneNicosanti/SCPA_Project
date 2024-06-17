@@ -12,8 +12,8 @@
 
 
 
+
 int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *blockRowsPtr, int *blockColsPtr, Version *versionPtr) ;
-void convertVersion(int versionInt, Version *version) ;
 
 
 int main(int argc, char *argv[]) {
@@ -118,28 +118,3 @@ int extractParams(int argc, char *argv[], int *mPtr, int *kPtr, int *nPtr, int *
     return 1 ;
 }
 
-void convertVersion(int versionInt, Version *versionPtr) {
-    switch (versionInt)
-    {
-    case 0:
-        *versionPtr = ZERO ;
-        break ;
-    case 1:
-        *versionPtr = ONE ;
-        break ;
-    case 2 :
-        *versionPtr = TWO ;
-        break ;
-    case 3 :
-        *versionPtr = THREE ;
-        break ;
-    case 4:
-        *versionPtr = FOUR ;
-        break;
-    case 5:
-        *versionPtr = FIVE ;
-    default:
-        *versionPtr = DEFAULT ;
-        break;
-    }
-}

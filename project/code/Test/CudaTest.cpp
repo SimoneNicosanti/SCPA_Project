@@ -9,27 +9,28 @@
 
 #define MAX_ATT 3
 #define MAX_PROB_DIM 10001
-#define MAX_SEQ_DIM 2001
+#define MAX_SEQ_DIM 5001
 #define START_PROB_DIM 250
 #define SIZE_INCREMENT 250
 
-double doParTest(Matrix A, Matrix B, Matrix C, int m, int k, int n) ;
+double doParTest(Matrix A, Matrix B, Matrix C, int m, int k, int n, Version version) ;
 double doSeqTest(Matrix A, Matrix B, Matrix C, int m, int k, int n) ;
-void testProducts(int m, int k, int n, char *resultFile) ;
-void squareTests() ;
-void rectangularTests() ;
+void testProducts(int m, int k, int n, char *resultFile, Version version) ;
+void squareTests(Version version) ;
+void rectangularTests(Version version) ;
+int extractParams(int argc, char *argv[], Version *versionPtr) ;
 
 
 
-void squareTests() {
+void squareTests(Version version) {
     for (int probDim = START_PROB_DIM ; probDim < MAX_PROB_DIM ; probDim += SIZE_INCREMENT) {
         char *outputPath = "../Results/CUDA/Tests/CUDA_Square_Test.csv" ;
         printf("Test con >>> (%d, %d, %d)\n", probDim, probDim, probDim) ;
-        testProducts(probDim, probDim, probDim, outputPath) ;
+        testProducts(probDim, probDim, probDim, outputPath, version) ;
     }
 }
 
-void rectangularTests() {
+void rectangularTests(Version version) {
     Matrix A, B, C, parC, seqC ;
     double seqTime, parTime ;
     double relativeError ;
@@ -41,17 +42,17 @@ void rectangularTests() {
         int k = kSizesList[i] ;
         char *outputPath = "../Results/CUDA/Tests/CUDA_Rect_Test.csv" ;
         printf("Test con >>> (%d, %d, %d)\n", otherSizes, k, otherSizes) ;
-        testProducts(otherSizes, k, otherSizes, outputPath) ;
+        testProducts(otherSizes, k, otherSizes, outputPath, version) ;
     }
 }
 
-void testProducts(int m, int k, int n, char *resultFile) {
+void testProducts(int m, int k, int n, char *resultFile, Version version) {
     Matrix A, B, C, parC, seqC ;
     double seqTime, parTime ;
     double relativeError ;
     TestResult testResult ;
 
-    testResult.processNum = -1 ;
+    testResult.processNum = version ;
     testResult.m = m ;
     testResult.k = k ;
     testResult.n = n ;
@@ -68,10 +69,10 @@ void testProducts(int m, int k, int n, char *resultFile) {
         copyMatrix(parC, C, m, n) ;
         copyMatrix(seqC, C, m, n) ;
 
-        testResult.parallelTime = doParTest(A, B, parC, m, k, n) ;
+        testResult.parallelTime = doParTest(A, B, parC, m, k, n, version) ;
         testResult.parallelTime = testResult.parallelTime ;
         // ONLY 0 does the parallel product
-        if (k < 0) {
+        if (k < MAX_SEQ_DIM) {
             testResult.sequentialTime = doSeqTest(A, B, seqC, m, k, n) ;
             testResult.sequentialTime = testResult.sequentialTime ;
 
@@ -94,18 +95,20 @@ void testProducts(int m, int k, int n, char *resultFile) {
 
 
 int main(int argc, char *argv[]) {
+
+    Version version ;
+    extractParams(argc, argv, &version) ;
     
     srand(987654) ;
-    squareTests() ;
-    rectangularTests() ;
+    squareTests(version) ;
+    rectangularTests(version) ;
 
     return 0 ;
     
 }
 
-double doParTest(Matrix A, Matrix B, Matrix C, int m, int k, int n) {
+double doParTest(Matrix A, Matrix B, Matrix C, int m, int k, int n, Version version) {
     Info info ;
-    Version version = DEFAULT ;
     CudaProduct(A, B, C, m, k, n, 0, 0, version, &info) ;
 
     return info.productTime ;
@@ -121,4 +124,16 @@ double doSeqTest(Matrix A, Matrix B, Matrix C, int m, int k, int n) {
     timer->stop() ;
 
     return timer->getTime() ;
+}
+
+int extractParams(int argc, char *argv[], Version *versionPtr) {
+    
+    for (int i = 0 ; i < argc - 1 ; i++) {
+        
+        if (strcmp(argv[i], "-v") == 0) {
+            convertVersion(atoi(argv[i+1]), versionPtr) ;
+        }
+    }
+
+    return 1 ;
 }

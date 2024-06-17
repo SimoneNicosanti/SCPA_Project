@@ -196,3 +196,27 @@ void removeMatricesFromDevice(Matrix hostMat, Matrix devMat, int m, int k) {
     ) ;
 
 }
+
+void convertVersion(int versionInt, Version *versionPtr) {
+    switch (versionInt)
+    {
+    case 0:
+        *versionPtr = ZERO ;
+        break ;
+    case 1:
+        *versionPtr = ONE ;
+        break ;
+    case 2 :
+        *versionPtr = TWO ;
+        break ;
+    case 3 :
+        *versionPtr = THREE ;
+        break ;
+    case 4:
+        *versionPtr = FOUR ;
+        break;
+    default:
+        *versionPtr = DEFAULT ;
+        break;
+    }
+}

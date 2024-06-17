@@ -9,7 +9,7 @@
 
 #define MAX_ATT 3
 #define MAX_PROB_DIM 10001
-#define MAX_SEQ_DIM 3001
+#define MAX_SEQ_DIM 5001
 #define START_PROB_DIM 250
 #define SIZE_INCREMENT 250
 
@@ -80,7 +80,7 @@ void testProducts(int myRank, int procNum, int m, int k, int n, char *resultFile
         testResult.parallelTime = doParTest(A, B, parC, m, k, n) ;
 
         // ONLY 0 does the parallel product
-        if (myRank == 0 && k < 0) {
+        if (myRank == 0 && k < MAX_SEQ_DIM) {
             testResult.sequentialTime = doSeqTest(A, B, seqC, m, k, n) ;
             testResult.relativeError = computeRelativeError(seqC, parC, m, n) ;
         } else {

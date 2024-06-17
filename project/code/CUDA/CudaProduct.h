@@ -7,14 +7,14 @@ typedef struct Info {
 } Info ;
 
 typedef enum Version {
-    DEFAULT,
-    ZERO,
+    ZERO = 0,
     ONE,
     TWO,
     THREE,
     FOUR,
-    FIVE,
+    DEFAULT
 } Version ;
 
-
 void CudaProduct(Matrix hostA, Matrix hostB, Matrix hostC, int m, int k, int n, int mb, int nb, Version version, Info *infoPtr) ;
+
+void convertVersion(int versionInt, Version *versionPtr) ;
