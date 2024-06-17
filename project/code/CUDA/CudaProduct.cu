@@ -12,7 +12,6 @@
 #include "Kernel_2.cuh"
 #include "Kernel_3.cuh"
 #include "Kernel_4.cuh"
-#include "Kernel_5.cuh"
 
 #define DEF_MB 50
 #define DEF_NB 50
@@ -50,7 +49,7 @@ void callKernel_1(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA,
 void callKernel_2(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC) {
     printf("CUDA Product Version >>> 2\n") ;
     const int BLOCK_SIZE = 32 ;
-    const int KB = 64 ;
+    const int KB = 32 ;
     dim3 blockDim(BLOCK_SIZE * BLOCK_SIZE) ;
     dim3 gridDim((n - 1) / BLOCK_SIZE + 1, (m - 1) / BLOCK_SIZE + 1) ;
 
@@ -62,18 +61,19 @@ void callKernel_2(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA,
 }
 
 void callKernel_3(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC) {
-    printf("CUDA Product Version >>> 4\n") ;
-    const int M_BLOCK_SIZE = 64 ;
-    const int N_BLOCK_SIZE = 64 ;
-    const int K_BLOCK_SIZE = 8 ;
+    printf("CUDA Product Version >>> 3\n") ;
+    const int M_BLOCK_SIZE = 128 ;
+    const int N_BLOCK_SIZE = 128 ;
+    const int K_BLOCK_SIZE = 4 ;
 
     const int A_TILE_SIZE = 4 ;
+    const int B_TILE_SIZE = 4 ;
 
-    dim3 BLOCK_DIM((M_BLOCK_SIZE * N_BLOCK_SIZE) / (A_TILE_SIZE)) ;
+    dim3 BLOCK_DIM((M_BLOCK_SIZE * N_BLOCK_SIZE) / (A_TILE_SIZE * B_TILE_SIZE)) ;
     dim3 GRID_DIM(((n - 1) / N_BLOCK_SIZE) + 1, ((m - 1) / M_BLOCK_SIZE) + 1) ;
 
     gpuProduct_3
-        <M_BLOCK_SIZE, K_BLOCK_SIZE, A_TILE_SIZE> 
+        <M_BLOCK_SIZE, K_BLOCK_SIZE, N_BLOCK_SIZE, A_TILE_SIZE, B_TILE_SIZE> 
         <<<GRID_DIM, BLOCK_DIM>>>(
             A, B, C, 
             m, k, n, 
@@ -86,28 +86,6 @@ void callKernel_4(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA,
     printf("CUDA Product Version >>> 4\n") ;
     const int M_BLOCK_SIZE = 128 ;
     const int N_BLOCK_SIZE = 128 ;
-    const int K_BLOCK_SIZE = 8 ;
-
-    const int A_TILE_SIZE = 4 ;
-    const int B_TILE_SIZE = 4 ;
-
-    dim3 BLOCK_DIM((M_BLOCK_SIZE * N_BLOCK_SIZE) / (A_TILE_SIZE * B_TILE_SIZE)) ;
-    dim3 GRID_DIM(((n - 1) / N_BLOCK_SIZE) + 1, ((m - 1) / M_BLOCK_SIZE) + 1) ;
-
-    gpuProduct_4
-        <M_BLOCK_SIZE, K_BLOCK_SIZE, N_BLOCK_SIZE, A_TILE_SIZE, B_TILE_SIZE> 
-        <<<GRID_DIM, BLOCK_DIM>>>(
-            A, B, C, 
-            m, k, n, 
-            pitchA, pitchB, pitchC
-        );
-    checkCudaErrors(cudaDeviceSynchronize());
-}
-
-void callKernel_5(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC) {
-    printf("CUDA Product Version >>> 5\n") ;
-    const int M_BLOCK_SIZE = 128 ;
-    const int N_BLOCK_SIZE = 128 ;
     const int K_BLOCK_SIZE = 16 ;
 
     const int A_TILE_SIZE = 8 ;
@@ -116,7 +94,7 @@ void callKernel_5(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA,
     dim3 BLOCK_DIM((M_BLOCK_SIZE * N_BLOCK_SIZE) / (A_TILE_SIZE * B_TILE_SIZE)) ;
     dim3 GRID_DIM(((n - 1) / N_BLOCK_SIZE) + 1, ((m - 1) / M_BLOCK_SIZE) + 1) ;
 
-    gpuProduct_5
+    gpuProduct_4
         <M_BLOCK_SIZE, K_BLOCK_SIZE, N_BLOCK_SIZE, A_TILE_SIZE, B_TILE_SIZE> 
         <<<GRID_DIM, BLOCK_DIM>>>(
             A, B, C, 
@@ -149,11 +127,8 @@ float callKernel(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, 
         case FOUR:
             callKernel_4(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
             break ;
-        case FIVE:
-            callKernel_5(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
-            break ;
         case DEFAULT:
-            callKernel_5(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
+            callKernel_4(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
     }
     timer->stop();    
 

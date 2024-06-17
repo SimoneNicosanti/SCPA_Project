@@ -9,6 +9,7 @@
     In this case each thread:
     - Loads multiple elements from GMEM to SMEM
     - Computes a sub square of elements in Matrix C
+    - The subA is loaded transposed: this allow us to load from subA contiguous elements
 */
 
 template <const int MB, const int KB, const int NB>
@@ -27,7 +28,7 @@ __device__ void loadSubMatrices_4(
     int loadingIncr = blockDim.x / KB ;
     for (int loadRowIdx = startLoadSubRowA ; loadRowIdx < rowsPerBlock ; loadRowIdx += loadingIncr) {
         if (kDispl + kSubA < k) {
-            subA[INDEX(loadRowIdx, kSubA, KB)] = A[INDEX(startLoadRowA + loadRowIdx, kDispl + kSubA, pitchA)] ;
+            subA[INDEX(kSubA, loadRowIdx, MB)] = A[INDEX(startLoadRowA + loadRowIdx, kDispl + kSubA, pitchA)] ;
         }
     }
 
@@ -36,6 +37,7 @@ __device__ void loadSubMatrices_4(
     int kSubB = threadIdx.x / loadingIncr ;
     int colsPerBlock = min(NB, n - NB * blockIdx.x) ;
 
+    
     for (int loadColIdx = startLoadSubColB ; loadColIdx < colsPerBlock ; loadColIdx += loadingIncr) {
         if (kDispl + kSubB < k) {
             subB[INDEX(kSubB, loadColIdx, NB)] = B[INDEX(kDispl + kSubB, startLoadColB + loadColIdx, pitchB)] ;
@@ -49,7 +51,7 @@ __global__ void gpuProduct_4(
     int m, int k , int n, 
     int pitchA, int pitchB, int pitchC
 ) {
-    __shared__ MatrixElemType subA[MB * KB] ;
+    __shared__ MatrixElemType subA[KB * MB] ;
     __shared__ MatrixElemType subB[KB * NB] ;
 
     MatrixElemType cAccMatrix[TILE_A][TILE_B] = {0.0} ;
@@ -71,7 +73,7 @@ __global__ void gpuProduct_4(
     for (int kDispl = 0 ; kDispl < k ; kDispl += KB) {
 
         // Loading subA and subB
-        loadSubMatrices_4
+        loadSubMatrices_5
             <MB, KB, NB>
             (A, B, m, k, n, pitchA, pitchB, kDispl, subA, subB) ;
         __syncthreads() ;
@@ -82,8 +84,8 @@ __global__ void gpuProduct_4(
         if (thrY < numTilesA) {
             for (int dotIdx = 0 ; dotIdx < currKLen ; dotIdx++) {
                 // Loading A Column and B Row in register cache
-                for (int i = 0 ; i < currTileSizeA ; i++) {
-                    subColA[i] = subA[INDEX(i + thrY * TILE_A, dotIdx, KB)] ;
+                for (int j = 0 ; j < currTileSizeA ; j++) {
+                    subColA[j] = subA[INDEX(dotIdx, j + thrY * TILE_A, MB)] ;
                 }
                 for (int j = 0 ; j < currTileSizeB ; j++) {
                     subRowB[j] = subB[INDEX(dotIdx, j + thrX * TILE_B, NB)] ;

@@ -25,14 +25,11 @@ __device__ void loadSubMatrices_2(
     int kSubA = threadIdx.x % MB ;
     int kSubB = threadIdx.x / MB ;
 
-    int loadableARows = blockDim.x / KB ;
-    int loadableBRows = blockDim.x / MB ;
-
-    if (kSubA + kDispl < k && rowGlobA < m && rowSubA < loadableARows) {
+    if (kSubA + kDispl < k && rowGlobA < m) {
         subA[INDEX(rowSubA, kSubA, MB)] = A[INDEX(rowGlobA, kDispl + kSubA, pitchA)] ;
     }
 
-    if (kSubB + kDispl < k && colGlobB < n && (kSubB + kDispl) < loadableBRows) {
+    if (kSubB + kDispl < k && colGlobB < n) {
         subB[INDEX(kSubB, colSubB, MB)] = B[INDEX(kDispl + kSubB, colGlobB, pitchB)] ;
     }
 
@@ -50,9 +47,6 @@ __global__ void gpuProduct_2(Matrix A, Matrix B, Matrix C, int m, int k , int n,
     int rowGlobA = rowSubA + MB * blockIdx.y ;
     int colGlobB = colSubB + MB * blockIdx.x ;
 
-    int loadableARows = blockDim.x / KB ;
-    int loadableBRows = blockDim.x / MB ;
-
     MatrixElemType cAcc = 0.0 ;
 
     for (int kDispl = 0 ; kDispl < k ; kDispl += MB) {
@@ -63,15 +57,14 @@ __global__ void gpuProduct_2(Matrix A, Matrix B, Matrix C, int m, int k , int n,
             (A, B, m, k, n, pitchA, pitchB, kDispl, subA, subB) ;
         __syncthreads() ;
 
-
-        if (rowGlobA < m && colGlobB < n && rowSubA < loadableARows) {
+        if (rowGlobA < m && colGlobB < n) {
             for (int kIdx = 0 ; kIdx < currKLen ; kIdx++) {
                 cAcc += subA[INDEX(rowSubA, kIdx, MB)] * subB[INDEX(kIdx, colSubB, MB)] ;
             }
         }
         __syncthreads() ;
     }
-    if (rowGlobA < m && colGlobB < n && rowSubA < loadableARows) {
+    if (rowGlobA < m && colGlobB < n) {
         C[INDEX(rowGlobA, colGlobB, pitchC)] += cAcc ;
     }
 
