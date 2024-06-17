@@ -8,8 +8,8 @@
 #define RAND_LOWER_BOUND -100
 #define RAND_UPPER_BOUND 100
 
-// TODO Change Tile Size to one like those he wrote in the assignment
-#define TILE_SIZE 100 
+
+#define TILE_SIZE 64 
 
 int min(int a, int b) {
     if (a < b) {

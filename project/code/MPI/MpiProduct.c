@@ -15,6 +15,7 @@
 #define ROOT_PROCESS 0
 #define SEND_TAG 100
 
+// TODO Scegliere le size dei blocchi
 #define ROW_BLOCK_SIZE 1
 #define COL_BLOCK_SIZE 1
 
@@ -60,7 +61,7 @@ void gatherFinalMatrix(
     Matrix matrix
 ) ;
 
-void setupEnvironment(int m, int k, int n, int mb, int nb) ;
+void setupEnvironment() ;
 
 
 // TODO Gestire errori MPI
@@ -74,7 +75,7 @@ void MpiProduct(Matrix A, Matrix B, Matrix C, int m, int k, int n, int blockRows
         nb = blockCols ;
     }
     
-    setupEnvironment(m, k, n, mb, nb) ;
+    setupEnvironment() ;
    
     Matrix subA, subB, subC ;
     int subm, subk, subn ;
@@ -127,7 +128,7 @@ void MpiProduct(Matrix A, Matrix B, Matrix C, int m, int k, int n, int blockRows
 }
 
 
-void setupEnvironment(int m, int k, int n, int mb, int nb) {
+void setupEnvironment() {
     MPI_Comm_dup(MPI_COMM_WORLD, &WORLD_COMM);
 
     int procNum ;
@@ -265,10 +266,6 @@ Matrix matrixSendToAll(
     for (int procRow = 0 ; procRow < processGrid[0] ; procRow++) {
         for (int procCol = 0 ; procCol < processGrid[1] ; procCol++) {
             int coords[2] = {procRow, procCol} ;
-            // if (invertGrid) {
-            //     coords[0] = procCol ;
-            //     coords[1] = procRow ;
-            // }
             int proc ;
             MPI_Cart_rank(CART_COMM, coords, &proc) ;
 

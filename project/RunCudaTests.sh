@@ -16,4 +16,4 @@ rm ./Results/CUDA/Tests/*
 cd ./out
 
 # Cuda Tests
-# TODO Add CUDA Tests here
+./CudaTest.out

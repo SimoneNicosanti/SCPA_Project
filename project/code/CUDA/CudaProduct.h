@@ -9,7 +9,8 @@ typedef struct Info {
 typedef enum Version {
     DEFAULT,
     FOUR,
-    FIVE
+    FIVE,
+    SIX
 } Version ;
 
 

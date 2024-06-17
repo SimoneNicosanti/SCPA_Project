@@ -13,7 +13,7 @@
 */
 
 template <const int MB, const int KB, const int NB>
-__device__ void loadSubMatrices_5(
+__device__ void loadSubMatrices_6(
     Matrix A, Matrix B, 
     int m, int k, int n, 
     int pitchA, int pitchB, 
@@ -36,8 +36,6 @@ __device__ void loadSubMatrices_5(
     int startLoadColB = NB * blockIdx.x ;
     int kSubB = threadIdx.x / loadingIncr ;
     int colsPerBlock = min(NB, n - NB * blockIdx.x) ;
-
-    
     for (int loadColIdx = startLoadSubColB ; loadColIdx < colsPerBlock ; loadColIdx += loadingIncr) {
         if (kDispl + kSubB < k) {
             subB[INDEX(kSubB, loadColIdx, NB)] = B[INDEX(kDispl + kSubB, startLoadColB + loadColIdx, pitchB)] ;
@@ -46,7 +44,7 @@ __device__ void loadSubMatrices_5(
 }
 
 template <const int MB, const int KB, const int NB, const int TILE_A, const int TILE_B>
-__global__ void gpuProduct_5(
+__global__ void gpuProduct_6(
     Matrix A, Matrix B, Matrix C, 
     int m, int k , int n, 
     int pitchA, int pitchB, int pitchC

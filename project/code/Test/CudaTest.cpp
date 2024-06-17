@@ -1,6 +1,7 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
+#include <helper_functions.h>
 
 #include "Matrix.h"
 #include "CudaProduct.h"
@@ -62,23 +63,23 @@ void testProducts(int m, int k, int n, char *resultFile) {
     for (int att = 0 ; att < MAX_ATT ; att++) {
 
         // Have to copy in two different C matrices as the result is overwritten
-        memcpy(parC, C, sizeof(MatrixElemType) * m * n) ;
-        memcpy(seqC, C, sizeof(MatrixElemType) * m * n) ;
+        copyMatrix(parC, C, m, n) ;
+        copyMatrix(seqC, C, m, n) ;
 
         testResult.parallelTime = doParTest(A, B, parC, m, k, n) ;
-
+        testResult.parallelTime = testResult.parallelTime * 1.e-3 ;
         // ONLY 0 does the parallel product
         if (k < 0) {
             testResult.sequentialTime = doSeqTest(A, B, seqC, m, k, n) ;
+            testResult.sequentialTime = testResult.sequentialTime * 1.e-3 ;
+
             testResult.relativeError = computeRelativeError(seqC, parC, m, n) ;
         } else {
             testResult.sequentialTime = -1 ;
             testResult.relativeError = -1 ;
         }
 
-        // Only zero writes on the CSV file
         writeTestResult(resultFile, &testResult) ;
-
     }
 
     freeMatrix(A) ;
@@ -100,7 +101,6 @@ int main(int argc, char *argv[]) {
     
 }
 
-// TODO Change -> Make return Info
 double doParTest(Matrix A, Matrix B, Matrix C, int m, int k, int n) {
     Info info ;
     Version version = DEFAULT ;
@@ -110,10 +110,13 @@ double doParTest(Matrix A, Matrix B, Matrix C, int m, int k, int n) {
 }
 
 double doSeqTest(Matrix A, Matrix B, Matrix C, int m, int k, int n) {
-    // TODO Change time take
-    //double seqStart = MPI_Wtime() ;
-    tileProduct(A, B, C, m, k, n) ;
-    //double seqEnd = MPI_Wtime() ;
 
-    return 0 ;
+    StopWatchInterface* timer = 0;
+    sdkCreateTimer(&timer);
+
+    timer->start() ;
+    tileProduct(A, B, C, m, k, n) ;
+    timer->stop() ;
+
+    return timer->getTime() ;
 }

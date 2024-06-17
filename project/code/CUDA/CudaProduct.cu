@@ -9,6 +9,7 @@
 
 #include "Kernel_4.cuh"
 #include "Kernel_5.cuh"
+#include "Kernel_6.cuh"
 
 #define DEF_MB 50
 #define DEF_NB 50
@@ -42,15 +43,38 @@ void callKernel_5(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA,
     printf("CUDA Product Version >>> 5\n") ;
     const int M_BLOCK_SIZE = 128 ;
     const int N_BLOCK_SIZE = 128 ;
-    const int K_BLOCK_SIZE = 8 ;
+    const int K_BLOCK_SIZE = 16 ;
 
-    const int A_TILE_SIZE = 4 ;
-    const int B_TILE_SIZE = 4 ;
+    const int A_TILE_SIZE = 8 ;
+    const int B_TILE_SIZE = 8 ;
 
     dim3 BLOCK_DIM((M_BLOCK_SIZE * N_BLOCK_SIZE) / (A_TILE_SIZE * B_TILE_SIZE)) ;
     dim3 GRID_DIM(((n - 1) / N_BLOCK_SIZE) + 1, ((m - 1) / M_BLOCK_SIZE) + 1) ;
 
     gpuProduct_5
+        <M_BLOCK_SIZE, K_BLOCK_SIZE, N_BLOCK_SIZE, A_TILE_SIZE, B_TILE_SIZE> 
+        <<<GRID_DIM, BLOCK_DIM>>>(
+            A, B, C, 
+            m, k, n, 
+            pitchA, pitchB, pitchC
+        );
+    checkCudaErrors(cudaDeviceSynchronize());
+}
+
+void callKernel_6(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC) {
+    // TODO Implementare Warp Tiling ???
+    printf("CUDA Product Version >>> 5\n") ;
+    const int M_BLOCK_SIZE = 128 ;
+    const int N_BLOCK_SIZE = 128 ;
+    const int K_BLOCK_SIZE = 16 ;
+
+    const int A_TILE_SIZE = 8 ;
+    const int B_TILE_SIZE = 8 ;
+
+    dim3 BLOCK_DIM((M_BLOCK_SIZE * N_BLOCK_SIZE) / (A_TILE_SIZE * B_TILE_SIZE)) ;
+    dim3 GRID_DIM(((n - 1) / N_BLOCK_SIZE) + 1, ((m - 1) / M_BLOCK_SIZE) + 1) ;
+
+    gpuProduct_6
         <M_BLOCK_SIZE, K_BLOCK_SIZE, N_BLOCK_SIZE, A_TILE_SIZE, B_TILE_SIZE> 
         <<<GRID_DIM, BLOCK_DIM>>>(
             A, B, C, 
@@ -74,8 +98,11 @@ float callKernel(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, 
     case FIVE:
         callKernel_5(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
         break;
+    case SIX:
+        callKernel_6(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
+        break;
     case DEFAULT:
-        callKernel_5(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
+        callKernel_6(A, B, C, m, k, n, pitchA, pitchB, pitchC) ;
     }
     timer->stop();    
 
@@ -110,9 +137,6 @@ void CudaProduct(
     checkCudaErrors(
         cudaMemcpy2D(hostC, sizeof(MatrixElemType) * n, devC, pitchC * sizeof(MatrixElemType), sizeof(MatrixElemType) * n, m, cudaMemcpyDeviceToHost)
     ) ;
-    // checkCudaErrors(
-    //     cudaMemcpy(hostC, devC, sizeof(MatrixElemType) * m * n, cudaMemcpyDeviceToHost) 
-    // ) ;
 
     cudaFree(devA) ;
     cudaFree(devB) ;
@@ -125,15 +149,6 @@ void moveMatricesFromHostToDevice(Matrix hostMatrix, Matrix *devMatrixPtr, int r
     checkCudaErrors(
         cudaHostRegister(hostMatrix, sizeof(MatrixElemType) * rows * cols, cudaHostRegisterDefault)
     ) ;
-
-    // checkCudaErrors(
-    //     cudaMalloc((void **) devMatrixPtr, sizeof(MatrixElemType) * rows * cols)
-    // ) ;
-    // checkCudaErrors(
-    //     cudaMemcpy(*devMatrixPtr, hostMatrix, sizeof(MatrixElemType) * rows * cols, cudaMemcpyHostToDevice) 
-    // ) ;
-    //*pitchPtr = 0 ;
-
     checkCudaErrors(
         cudaMallocPitch((void **) devMatrixPtr, pitchPtr, sizeof(MatrixElemType) * cols, rows)
     ) ;
