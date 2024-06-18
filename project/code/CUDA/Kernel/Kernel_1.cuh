@@ -18,15 +18,14 @@
 template <const int BLOCK_SIZE>
 __global__ void gpuProduct_1(Matrix A, Matrix B, Matrix C, int m, int k , int n, int pitchA, int pitchB, int pitchC) {
 
-    int rowIdx = (threadIdx.x / BLOCK_SIZE) + BLOCK_SIZE * blockIdx.y ;
-    int colIdx = (threadIdx.x % BLOCK_SIZE) + BLOCK_SIZE * blockIdx.x ;
+    int rowIdx = threadIdx.y + blockIdx.y * blockDim.y ;
+    int colIdx = threadIdx.x + blockIdx.x * blockDim.x ;
 
     MatrixElemType cAcc = 0.0 ;
-    if (rowIdx < m && colIdx < n) {
+    if (colIdx < n && rowIdx < m) {
         for (int kIdx = 0 ; kIdx < k ; kIdx++) {
             cAcc += A[INDEX(rowIdx, kIdx, pitchA)] * B[INDEX(kIdx, colIdx, pitchB)] ;
         }
-
         C[INDEX(rowIdx, colIdx, pitchC)] += cAcc ;
     }
     

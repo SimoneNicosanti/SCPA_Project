@@ -28,12 +28,12 @@ def gflopsChart(gflopsDataSet : pd.DataFrame, separatorColumn: str, folder : str
         plt.plot(subDataSet["K"], subDataSet["GFLOPS"], marker = "o", label = f"{separatorColumn} = {sepValue}")
 
     plt.xticks(gflopsDataSet["K"].unique(), rotation = 30)
-    plt.legend()
+    plt.legend(loc = "upper left")
     plt.grid()
     plt.xlabel("K")
     plt.ylabel("GFLOPS")
     plt.title(f"{folder} - GFLOPS Trend - {case} Case")
-    plt.savefig(f"../{folder}/Charts/{folder}_GFLOPS_{case}_Chart.png")
+    plt.savefig(f"../{folder}/Charts/{folder}_GFLOPS_{case}_Chart.png", format = "png", transparent = True)
     plt.clf()
 
 def speedUpChart(comparisonDataSet : pd.DataFrame, separatorColumn: str, folder : str, case : str) :
@@ -43,12 +43,12 @@ def speedUpChart(comparisonDataSet : pd.DataFrame, separatorColumn: str, folder 
         plt.plot(subDataSet["K"], subDataSet["SpeedUp"], marker = "o", label = f"{separatorColumn} = {sepValue}")
 
     plt.xticks(comparisonDataSet["K"].unique(), rotation = 30)
-    plt.legend()
+    plt.legend(loc = "upper left")
     plt.grid()
     plt.xlabel("K")
     plt.ylabel("SpeedUp")
     plt.title(f"{folder} - SpeedUp Trend - {case} Case")
-    plt.savefig(f"../{folder}/Charts/{folder}_SpeedUp_{case}_Chart.png")
+    plt.savefig(f"../{folder}/Charts/{folder}_SpeedUp_{case}_Chart.png", format = "png", transparent = True)
     plt.clf()
 
 

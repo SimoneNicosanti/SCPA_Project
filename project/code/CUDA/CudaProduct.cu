@@ -25,7 +25,7 @@ void callKernel_0(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA,
     printf("CUDA Product Version >>> 0\n") ;
     const int BLOCK_SIZE = 32 ;
     dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE) ;
-    dim3 gridDim((n - 1) / BLOCK_SIZE + 1, (m - 1) / BLOCK_SIZE + 1) ;
+    dim3 gridDim((m - 1) / BLOCK_SIZE + 1, (n - 1) / BLOCK_SIZE + 1) ;
 
     gpuProduct_0
         <<<gridDim, blockDim>>>
@@ -36,7 +36,7 @@ void callKernel_0(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA,
 void callKernel_1(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC) {
     printf("CUDA Product Version >>> 1\n") ;
     const int BLOCK_SIZE = 32 ;
-    dim3 blockDim(BLOCK_SIZE * BLOCK_SIZE) ;
+    dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE) ;
     dim3 gridDim((n - 1) / BLOCK_SIZE + 1, (m - 1) / BLOCK_SIZE + 1) ;
 
     gpuProduct_1
