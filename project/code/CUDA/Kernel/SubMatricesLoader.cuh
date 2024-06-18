@@ -8,22 +8,25 @@ __device__ void loadSubMatrices(
     int pitchA, int pitchB, 
     int kDispl, 
     Matrix subA, Matrix subB,
-    int colsSubA, int colsSubB
+    int colsSubA, int colsSubB,
+    bool isSubATransposed = false
 ) {
     int startLoadSubRowA = threadIdx.y ;
     int startLoadRowA = MB * blockIdx.y ;
-    int kSubA = threadIdx.x ;
     int rowsPerBlock = min(MB, m - MB * blockIdx.y) ;
 
     for (int kSubA = threadIdx.x ; kSubA < min(k - kDispl, KB) ; kSubA += blockDim.x) {
         for (int loadRowIdx = startLoadSubRowA ; loadRowIdx < rowsPerBlock ; loadRowIdx += blockDim.y) {
-            subA[INDEX(loadRowIdx, kSubA, colsSubA)] = A[INDEX(startLoadRowA + loadRowIdx, kDispl + kSubA, pitchA)] ;
+            if (!isSubATransposed) {
+                subA[INDEX(loadRowIdx, kSubA, colsSubA)] = A[INDEX(startLoadRowA + loadRowIdx, kDispl + kSubA, pitchA)] ;
+            } else {
+                subA[INDEX(kSubA, loadRowIdx, colsSubA)] = A[INDEX(startLoadRowA + loadRowIdx, kDispl + kSubA, pitchA)] ;
+            }
         }
     }
 
     int startLoadSubColB = threadIdx.x ;
     int startLoadColB = NB * blockIdx.x ;
-    int kSubB = threadIdx.y  ;
     int colsPerBlock = min(NB, n - NB * blockIdx.x) ;
 
     for (int kSubB = threadIdx.y ; kSubB < min(k - kDispl, KB) ; kSubB += blockDim.y) {

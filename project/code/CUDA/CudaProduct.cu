@@ -49,7 +49,7 @@ void callKernel_1(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA,
 void callKernel_2(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC) {
     printf("CUDA Product Version >>> 2\n") ;
     const int BLOCK_SIZE = 16 ;
-    const int KB = 32 ;
+    const int KB = 16 ;
     dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE) ;
     dim3 gridDim((n - 1) / BLOCK_SIZE + 1, (m - 1) / BLOCK_SIZE + 1) ;
 
@@ -64,7 +64,7 @@ void callKernel_3(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA,
     printf("CUDA Product Version >>> 3\n") ;
     const int M_BLOCK_SIZE = 128 ;
     const int N_BLOCK_SIZE = 128 ;
-    const int K_BLOCK_SIZE = 32 ;
+    const int K_BLOCK_SIZE = 16 ;
 
     const int A_TILE_SIZE = 8 ;
     const int B_TILE_SIZE = 8 ;
@@ -87,7 +87,7 @@ void callKernel_4(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA,
     printf("CUDA Product Version >>> 4\n") ;
     const int M_BLOCK_SIZE = 128 ;
     const int N_BLOCK_SIZE = 128 ;
-    const int K_BLOCK_SIZE = 8 ;
+    const int K_BLOCK_SIZE = 16 ;
 
     const int A_TILE_SIZE = 8 ;
     const int B_TILE_SIZE = 8 ;
