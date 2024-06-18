@@ -1,5 +1,7 @@
 #include "Matrix.h"
 
+// TODO > Problem with kernel_3 and kernel_4 when KB > b_m or b_n
+
 
 template <const int MB, const int KB, const int NB>
 __device__ void loadSubMatrices(
