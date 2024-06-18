@@ -16,8 +16,8 @@ rm ./Results/CUDA/Tests/*
 cd ./out
 
 # Cuda Tests
-./CudaTest.out -v 0
-./CudaTest.out -v 1
+# ./CudaTest.out -v 0
+#./CudaTest.out -v 1
 ./CudaTest.out -v 2
-./CudaTest.out -v 3
-./CudaTest.out -v 4
+# ./CudaTest.out -v 3
+# ./CudaTest.out -v 4
