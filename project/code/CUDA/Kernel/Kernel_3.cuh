@@ -9,39 +9,8 @@
     In this case each thread:
     - Loads multiple elements from GMEM to SMEM
     - Computes a sub square of elements in Matrix C
+    - Increases arithmetic intensity
 */
-
-template <const int MB, const int KB, const int NB>
-__device__ void loadSubMatrices_3(
-    Matrix A, Matrix B, 
-    int m, int k, int n, 
-    int pitchA, int pitchB, 
-    int kDispl, 
-    Matrix subA, Matrix subB
-) {
-    int startLoadSubRowA = threadIdx.x / KB ;
-    int startLoadRowA = MB * blockIdx.y ;
-    int kSubA = threadIdx.x % KB ;
-    int rowsPerBlock = min(MB, m - MB * blockIdx.y) ;
-
-    int loadingIncr = blockDim.x / KB ;
-    for (int loadRowIdx = startLoadSubRowA ; loadRowIdx < rowsPerBlock ; loadRowIdx += loadingIncr) {
-        if (kDispl + kSubA < k) {
-            subA[INDEX(loadRowIdx, kSubA, KB)] = A[INDEX(startLoadRowA + loadRowIdx, kDispl + kSubA, pitchA)] ;
-        }
-    }
-
-    int startLoadSubColB = threadIdx.x % loadingIncr ;
-    int startLoadColB = NB * blockIdx.x ;
-    int kSubB = threadIdx.x / loadingIncr ;
-    int colsPerBlock = min(NB, n - NB * blockIdx.x) ;
-
-    for (int loadColIdx = startLoadSubColB ; loadColIdx < colsPerBlock ; loadColIdx += loadingIncr) {
-        if (kDispl + kSubB < k) {
-            subB[INDEX(kSubB, loadColIdx, NB)] = B[INDEX(kDispl + kSubB, startLoadColB + loadColIdx, pitchB)] ;
-        }
-    }
-}
 
 template <const int MB, const int KB, const int NB, const int TILE_A, const int TILE_B>
 __global__ void gpuProduct_3(
@@ -49,6 +18,7 @@ __global__ void gpuProduct_3(
     int m, int k , int n, 
     int pitchA, int pitchB, int pitchC
 ) {
+
     __shared__ MatrixElemType subA[MB * KB] ;
     __shared__ MatrixElemType subB[KB * NB] ;
 
@@ -62,31 +32,32 @@ __global__ void gpuProduct_3(
     int numTilesB = ((colsPerBlock - 1) / TILE_B) + 1 ;
     int numTilesA = ((rowsPerBlock - 1) / TILE_A) + 1 ;
 
-    int thrX = threadIdx.x % numTilesB ;
-    int thrY = threadIdx.x / numTilesB ;
+    int thrTileBIdx = threadIdx.x ;
+    int thrTileAIdx = threadIdx.y ;
 
-    int currTileSizeA = min(TILE_A, rowsPerBlock - TILE_A * thrY) ;
-    int currTileSizeB = min(TILE_B, colsPerBlock - TILE_B * thrX) ;
+    int currTileSizeA = min(TILE_A, rowsPerBlock - TILE_A * thrTileAIdx) ;
+    int currTileSizeB = min(TILE_B, colsPerBlock - TILE_B * thrTileBIdx) ;
 
     for (int kDispl = 0 ; kDispl < k ; kDispl += KB) {
 
         // Loading subA and subB
-        loadSubMatrices_3
+        loadSubMatrices
             <MB, KB, NB>
-            (A, B, m, k, n, pitchA, pitchB, kDispl, subA, subB) ;
+            (A, B, m, k, n, pitchA, pitchB, kDispl, subA, subB, KB, NB) ;
         __syncthreads() ;
+
 
         int currKLen = min(KB, k - kDispl) ;
 
         // Each thread computes a little rectangle of C
-        if (thrY < numTilesA) {
+        if (thrTileAIdx < numTilesA && thrTileBIdx < numTilesB) {
             for (int dotIdx = 0 ; dotIdx < currKLen ; dotIdx++) {
                 // Loading A Column and B Row in register cache
                 for (int i = 0 ; i < currTileSizeA ; i++) {
-                    subColA[i] = subA[INDEX(i + thrY * TILE_A, dotIdx, KB)] ;
+                    subColA[i] = subA[INDEX(i + thrTileAIdx * TILE_A, dotIdx, KB)] ;
                 }
                 for (int j = 0 ; j < currTileSizeB ; j++) {
-                    subRowB[j] = subB[INDEX(dotIdx, j + thrX * TILE_B, NB)] ;
+                    subRowB[j] = subB[INDEX(dotIdx, j + thrTileBIdx * TILE_B, NB)] ;
                 }
 
                 for (int rowIdx = 0 ; rowIdx < currTileSizeA ; rowIdx++) {
@@ -100,8 +71,8 @@ __global__ void gpuProduct_3(
     }
     
     // Moving back to C
-    int cRowStart = blockIdx.y * MB + thrY * TILE_A ;
-    int cColStart = blockIdx.x * NB + thrX * TILE_B ;
+    int cRowStart = blockIdx.y * MB + thrTileAIdx * TILE_A ;
+    int cColStart = blockIdx.x * NB + thrTileBIdx * TILE_B ;
     if (cRowStart < m && cColStart < n) {
         for (int tileIdxA = 0 ; tileIdxA < currTileSizeA ; tileIdxA++) {
             for (int tileIdxB = 0 ; tileIdxB < currTileSizeB ; tileIdxB++) {

@@ -7,38 +7,14 @@
     - Thread calcola singolo prodotto riga per colonna in accumulatore
 */
 
-template <const int MB, const int KB>
-__device__ void loadSubMatrices_2(
-    Matrix A, Matrix B, 
-    int m, int k, int n, 
-    int pitchA, int pitchB, 
-    int kDispl, 
-    Matrix subA, Matrix subB
-) {
-    int rowSubA = threadIdx.y ;
-    int colSubB = threadIdx.x ;
+#include "SubMatricesLoader.cuh"
 
-    int rowGlobA = threadIdx.y + blockDim.y * blockIdx.y ;
-    int colGlobB = threadIdx.x + blockDim.x * blockIdx.x ;
-
-    int kSubA = threadIdx.x ;
-    int kSubB = threadIdx.y ;
-
-    if (kSubA + kDispl < k && rowGlobA < m) {
-        subA[INDEX(rowSubA, kSubA, MB)] = A[INDEX(rowGlobA, kDispl + kSubA, pitchA)] ;
-    }
-
-    if (kSubB + kDispl < k && colGlobB < n) {
-        subB[INDEX(kSubB, colSubB, MB)] = B[INDEX(kDispl + kSubB, colGlobB, pitchB)] ;
-    }
-
-}
 
 template <const int MB, const int KB>
 __global__ void gpuProduct_2(Matrix A, Matrix B, Matrix C, int m, int k , int n, int pitchA, int pitchB, int pitchC) {
 
-    __shared__ MatrixElemType subA[MB * MB] ;
-    __shared__ MatrixElemType subB[MB * MB] ;
+    __shared__ MatrixElemType subA[MB * KB] ;
+    __shared__ MatrixElemType subB[KB * MB] ;
 
     int rowSubA = threadIdx.y ;
     int colSubB = threadIdx.x ;
@@ -48,17 +24,17 @@ __global__ void gpuProduct_2(Matrix A, Matrix B, Matrix C, int m, int k , int n,
 
     MatrixElemType cAcc = 0.0 ;
 
-    for (int kDispl = 0 ; kDispl < k ; kDispl += MB) {
+    for (int kDispl = 0 ; kDispl < k ; kDispl += KB) {
         int currKLen = min(KB, k - kDispl) ;
 
-        loadSubMatrices_2
-            <MB, KB>
-            (A, B, m, k, n, pitchA, pitchB, kDispl, subA, subB) ;
+        loadSubMatrices
+            <MB, KB, MB>
+            (A, B, m, k, n, pitchA, pitchB, kDispl, subA, subB, KB, MB) ;
         __syncthreads() ;
 
         if (rowGlobA < m && colGlobB < n) {
             for (int kIdx = 0 ; kIdx < currKLen ; kIdx++) {
-                cAcc += subA[INDEX(rowSubA, kIdx, MB)] * subB[INDEX(kIdx, colSubB, MB)] ;
+                cAcc += subA[INDEX(rowSubA, kIdx, KB)] * subB[INDEX(kIdx, colSubB, MB)] ;
             }
         }
         __syncthreads() ;
