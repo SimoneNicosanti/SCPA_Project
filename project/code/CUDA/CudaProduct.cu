@@ -13,9 +13,6 @@
 #include "Kernel_3.cuh"
 #include "Kernel_4.cuh"
 
-#define DEF_MB 50
-#define DEF_NB 50
-
 void moveMatricesFromHostToDevice(Matrix hostMatrix, Matrix *devMatrix, int rows, int cols, size_t *pitchPtr) ;
 void removeMatricesFromDevice(Matrix hostMat, Matrix devMat, int m, int k) ;
 float callKernel(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, int pitchB, int pitchC, Version version) ;
@@ -140,17 +137,9 @@ float callKernel(Matrix A, Matrix B, Matrix C, int m, int k, int n, int pitchA, 
 void CudaProduct(
     Matrix hostA, Matrix hostB, Matrix hostC, 
     int m, int k, int n, 
-    int mb, int nb, 
     Version version,
     Info *infoPtr
 ) {
-
-    if (mb <= 0) {
-        mb = DEF_MB ;
-    }
-    if (nb <= 0) {
-        nb = DEF_NB ;
-    }
 
     Matrix devA, devB, devC ;
     size_t pitchA, pitchB, pitchC ;

@@ -5,7 +5,7 @@
 void prepareResultFile(char *fileName, int framework) {
     FILE *fileDesc = fopen(fileName, "w+") ;
     if (fileDesc == NULL) {
-        //TODO Error in creating file result
+        printf("ERROR >> CANNOT CREATE TEST OUTPUT FILE\n") ;
     }
 
     fprintf(fileDesc, "%s,%s,%s,%s,%s,%s,%s\n", "M", "N", "K", framework == 0 ? "ProcessNum" : "KernelVersion", "ParallelTime", "SequentialTime", "RelativeError") ;

@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
     Version version ;
     extractParams(argc, argv, &m, &k, &n, &blockRows, &blockCols, &version) ;
 
-    Matrix A = allocRandomMatrix(m, k) ; // TODO Check if can change with cudaHostAllocMapped --> Need to change the allocations
+    Matrix A = allocRandomMatrix(m, k) ;
     Matrix B = allocRandomMatrix(k, n) ;
     Matrix C = allocRandomMatrix(m, n) ;
 
@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
     Info info ;
     Version ver ;
     
-    CudaProduct(A, B, parC, m, k, n, blockRows, blockCols, version, &info) ;
+    CudaProduct(A, B, parC, m, k, n, version, &info) ;
 
     StopWatchInterface* timer = 0;
     sdkCreateTimer(&timer);

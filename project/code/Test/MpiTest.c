@@ -119,7 +119,7 @@ void main(int argc, char *argv[]) {
     MPI_Finalize() ;
 }
 
-// TODO Change -> Make return Info
+
 double doParTest(Matrix A, Matrix B, Matrix C, int m, int k, int n) {
     Info info ;
     MpiProduct(A, B, C, m, k, n, 0, 0, &info) ;

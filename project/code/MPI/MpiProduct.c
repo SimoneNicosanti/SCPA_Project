@@ -15,7 +15,7 @@
 #define ROOT_PROCESS 0
 #define SEND_TAG 100
 
-// TODO Scegliere le size dei blocchi
+
 #define ROW_BLOCK_SIZE 1
 #define COL_BLOCK_SIZE 1
 

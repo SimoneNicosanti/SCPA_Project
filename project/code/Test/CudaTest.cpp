@@ -37,7 +37,6 @@ void rectangularTests(Version version) {
 
     int kSizesList[] = {32, 64, 128, 156} ;
     int otherSizes = 10000 ;
-
     for (int i = 0 ; i < 4 ; i++) {
         int k = kSizesList[i] ;
         char *outputPath = "../Results/CUDA/Tests/CUDA_Rect_Test.csv" ;
@@ -109,7 +108,7 @@ int main(int argc, char *argv[]) {
 
 double doParTest(Matrix A, Matrix B, Matrix C, int m, int k, int n, Version version) {
     Info info ;
-    CudaProduct(A, B, C, m, k, n, 0, 0, version, &info) ;
+    CudaProduct(A, B, C, m, k, n, version, &info) ;
 
     return info.productTime ;
 }

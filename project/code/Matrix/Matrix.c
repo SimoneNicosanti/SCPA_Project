@@ -62,7 +62,7 @@ void freeMatrix(Matrix matrix) {
     free(matrix) ;
 }
 
-//TODO Forse se scambio i cicli di tTile e jTile è meglio --> Uso meglio la località
+
 void tileProduct(Matrix A, Matrix B, Matrix C, int m, int k, int n) {
     
     for (int iTile = 0 ; iTile < m ; iTile = iTile + TILE_SIZE) {
