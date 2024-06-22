@@ -64,7 +64,6 @@ void gatherFinalMatrix(
 void setupEnvironment() ;
 
 
-// TODO Gestire errori MPI
 void MpiProduct(Matrix A, Matrix B, Matrix C, int m, int k, int n, int blockRows, int blockCols, Info *infoPtr) {
     int mb = ROW_BLOCK_SIZE ;
     int nb = COL_BLOCK_SIZE ;
